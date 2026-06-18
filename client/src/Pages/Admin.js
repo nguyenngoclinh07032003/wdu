@@ -1,4 +1,71 @@
-import React from 'react';
-export default function Admin(){
-  return <div>Admin</div>;
-}
+import React, { useState, useEffect } from 'react';
+import classNames from 'classnames/bind';
+import styles from '../Styles/Admin.module.scss';
+import 'react-toastify/dist/ReactToastify.css';
+
+import SlideBar from './Admin/SlideBar/SlideBar';
+import HomePage from './Admin/HomePage/HomePage';
+import { requestAdmin } from '../Config/api';
+import { useNavigate } from 'react-router-dom';
+
+const cx = classNames.bind(styles);
+
+const Admin = () => {
+    const navigate = useNavigate();
+    const [checkTypeSlideBar, setCheckTypeSlideBar] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [allowed, setAllowed] = useState(false);
+
+    useEffect(() => {
+        document.title = 'Quản Trị Admin';
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchAdmin = async () => {
+            try {
+                await requestAdmin();
+
+                if (!isMounted) return;
+                setAllowed(true);
+            } catch (error) {
+                if (!isMounted) return;
+                setAllowed(false);
+                navigate('/', { replace: true });
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchAdmin();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [navigate]);
+
+    if (loading) {
+        return <div style={{ padding: '20px' }}>Đang tải trang quản trị...</div>;
+    }
+
+    if (!allowed) {
+        return null;
+    }
+
+    return (
+        <div className={cx('wrapper')}>
+            <div className={cx('slidebar')}>
+                <SlideBar setCheckTypeSlideBar={setCheckTypeSlideBar} checkTypeSlideBar={checkTypeSlideBar} />
+            </div>
+
+            <div className={cx('home-page')}>
+                <HomePage checkTypeSlideBar={checkTypeSlideBar} />
+            </div>
+        </div>
+    );
+};
+
+export default Admin;
