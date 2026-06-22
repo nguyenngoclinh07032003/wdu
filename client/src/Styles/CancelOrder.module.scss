@@ -1,0 +1,120 @@
+.modalCancel {
+    :global(.modal-dialog) {
+        transform: scale(0.9);
+        opacity: 0;
+        transition: all 0.25s ease;
+    }
+
+    &:global(.show) :global(.modal-dialog) {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    :global(.modal-content) {
+        border-radius: 14px;
+        padding: 10px;
+        border: none;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    :global(.modal-header) {
+        border-bottom: none;
+        padding-bottom: 6px;
+    }
+
+    :global(.modal-title) {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    :global(.modal-body) {
+        text-align: center;
+        font-size: 15px;
+        color: #6b7280;
+        padding: 20px 10px;
+    }
+
+    :global(.modal-footer) {
+        border-top: none;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        padding-top: 8px;
+    }
+
+    :global(.btn-secondary) {
+        min-width: 100px;
+        border-radius: 8px;
+    }
+
+    :global(.btn-primary) {
+        min-width: 140px;
+        border-radius: 8px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        border: none;
+    }
+
+    :global(.btn-primary:hover) {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+    }
+
+    :global(.btn-primary:disabled) {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+}
+.warningText {
+    margin-bottom: 12px;
+    color: #344054;
+    font-size: 15px;
+}
+
+.infoLine {
+    margin-bottom: 8px;
+    color: #344054;
+    font-size: 14px;
+}
+
+.reasonBox {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    select,
+    textarea {
+        width: 100%;
+        border: 1px solid #d0d5dd;
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 14px;
+        color: #101828;
+        outline: none;
+        background: #fff;
+
+        &:focus {
+            border-color: #84cc16;
+            box-shadow: 0 0 0 4px rgba(132, 204, 22, 0.14);
+        }
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 90px;
+    }
+}
+
+.errorText {
+    margin-top: 12px;
+    color: #dc3545;
+    font-weight: 700;
+}
