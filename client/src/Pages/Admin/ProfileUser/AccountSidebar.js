@@ -1,12 +1,9 @@
 import classNames from 'classnames/bind';
-import styles from '../../../Styles/InfoUser.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faUser,
     faBox,
     faLocationDot,
-    faStar,
-    faRightFromBracket,
     faBell,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -67,6 +64,7 @@ function AccountSidebar({ onLogout, activeKey = 'profile', onChangeTab }) {
                     <span>Đăng xuất</span>
                 </button>
             </div>
+ main
         </aside>
     );
 }

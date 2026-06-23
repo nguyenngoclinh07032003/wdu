@@ -1,5 +1,4 @@
 import classNames from 'classnames/bind';
-import styles from '../../../Styles/InfoUser.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserPen, faFloppyDisk } from '@fortawesome/free-solid-svg-icons';
 
@@ -51,6 +50,7 @@ function PersonalInfoForm({ formData, onChangeValue, onSave, onCancel, loadingSa
                     <label>Mật khẩu</label>
                     <input type="text" value="**********" readOnly />
                 </div>
+
             </div>
 
             <div className={cx('actions')}>
