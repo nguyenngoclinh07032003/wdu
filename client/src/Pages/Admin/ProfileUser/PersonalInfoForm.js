@@ -1,5 +1,4 @@
 import classNames from 'classnames/bind';
-import styles from '../../Styles/InfoUser.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserPen, faFloppyDisk } from '@fortawesome/free-solid-svg-icons';
 
@@ -52,10 +51,6 @@ function PersonalInfoForm({ formData, onChangeValue, onSave, onCancel, loadingSa
                     <input type="text" value="**********" readOnly />
                 </div>
 
-                {/* <div className={cx('formGroup', 'fullWidth')}>
-                    <label>Số dư tài khoản</label>
-                    <input type="text" value={`${Number(formData.surplus || 0).toLocaleString()} đ`} readOnly />
-                </div> */}
             </div>
 
             <div className={cx('actions')}>
