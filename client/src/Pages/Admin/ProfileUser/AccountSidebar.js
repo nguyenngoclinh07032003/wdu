@@ -1,14 +1,9 @@
 import classNames from 'classnames/bind';
-import styles from '../../Styles/InfoUser.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faUser,
     faBox,
     faLocationDot,
-    faTag,
-    faStar,
-    faRightFromBracket,
-    faTrophy,
     faBell,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -69,21 +64,7 @@ function AccountSidebar({ onLogout, activeKey = 'profile', onChangeTab }) {
                     <span>Đăng xuất</span>
                 </button>
             </div>
-
-            {/* <div className={cx('rankCard')}>
-                <div className={cx('rankTop')}>
-                    <span className={cx('rankLabel')}>HẠNG THÀNH VIÊN</span>
-                    <FontAwesomeIcon icon={faTrophy} className={cx('rankIcon')} />
-                </div>
-
-                <h4 className={cx('rankName')}>Thành viên Bạc</h4>
-
-                <div className={cx('progressBar')}>
-                    <div className={cx('progressValue')}></div>
-                </div>
-
-                <p className={cx('rankDesc')}>Còn 350 điểm để lên hạng Vàng</p>
-            </div> */}
+ main
         </aside>
     );
 }
