@@ -119,6 +119,31 @@ function route(app) {
         }
     });
 
+    // Check staff access
+    app.get('/api/staff', ControllerJWT.verifyTokenStaff, async (req, res) => {
+        try {
+            return res.status(200).json({ message: 'Bạn có quyền truy cập khu vực Staff' });
+        } catch (error) {
+            console.error('Staff access error:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    });
+
+    // Check doctor access
+    app.get('/api/doctor', ControllerJWT.verifyTokenDoctor, async (req, res) => {
+        try {
+            return res.status(200).json({ message: 'Bạn có quyền truy cập khu vực Bác sĩ' });
+        } catch (error) {
+            console.error('Doctor access error:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    });
+
+    // Doctor module
+    app.use('/api/doctor', require('./RouteDoctor'));
+    app.use('/api/doctor-inbox', require('./RouteDoctorInbox'));
+    app.use('/api/staff-inbox', require('./RouteStaffInbox'));
+
     // Address
     app.use('/api/addresses', AddressRoute);
     app.get('/api/addresses', AddressRoute);

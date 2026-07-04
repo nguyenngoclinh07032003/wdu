@@ -53,8 +53,16 @@ function LoginUser() {
 
             toast.success(res.data.message || 'Đăng nhập thành công!');
 
+            const role = res.data?.user?.role;
+            const isAdmin = res.data?.user?.isAdmin;
+            let redirectPath = '/';
+            if (isAdmin) redirectPath = '/admin';
+            else if (role === 'staff') redirectPath = '/staff';
+            else if (role === 'doctor') redirectPath = '/doctor';
+            else if (role === 'shipper') redirectPath = '/shipper/dashboard';
+
             setTimeout(() => {
-                navigate('/');
+                navigate(redirectPath);
                 window.location.reload();
             }, 800);
         } catch (error) {

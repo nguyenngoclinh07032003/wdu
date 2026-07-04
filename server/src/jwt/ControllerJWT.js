@@ -129,7 +129,175 @@ const ControllerJWT = {
             });
         }
     },
-    // Middleware mới để xác thực token cho shipper
+
+    verifyTokenStaffOrAdmin: async (req, res, next) => {
+        try {
+            const token = req.cookies?.Token;
+
+            if (!token) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Bạn cần đăng nhập lại',
+                });
+            }
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            let findUser = null;
+
+            if (decoded?.id) {
+                findUser = await modelUser.findById(decoded.id).select('-password');
+            } else if (decoded?.email) {
+                findUser = await modelUser.findOne({ email: decoded.email }).select('-password');
+            }
+
+            if (!findUser) {
+                clearTokenCookie(res);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy người dùng',
+                });
+            }
+
+            if (findUser.isActive === false) {
+                clearTokenCookie(res);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Tài khoản của bạn đã bị khóa',
+                    code: 'ACCOUNT_LOCKED',
+                });
+            }
+
+            if (findUser.role !== 'staff' && findUser.isAdmin !== true) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền thực hiện thao tác này',
+                });
+            }
+
+            req.user = buildUserPayload(findUser);
+            next();
+        } catch (error) {
+            clearTokenCookie(res);
+            return res.status(401).json({
+                success: false,
+                message: 'Token không hợp lệ hoặc đã hết hạn',
+            });
+        }
+    },
+
+    verifyTokenStaff: async (req, res, next) => {
+        try {
+            const token = req.cookies?.Token;
+
+            if (!token) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Bạn cần đăng nhập lại',
+                });
+            }
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            let findUser = null;
+
+            if (decoded?.id) {
+                findUser = await modelUser.findById(decoded.id).select('-password');
+            } else if (decoded?.email) {
+                findUser = await modelUser.findOne({ email: decoded.email }).select('-password');
+            }
+
+            if (!findUser) {
+                clearTokenCookie(res);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy người dùng',
+                });
+            }
+
+            if (findUser.isActive === false) {
+                clearTokenCookie(res);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Tài khoản của bạn đã bị khóa',
+                    code: 'ACCOUNT_LOCKED',
+                });
+            }
+
+            if (findUser.role !== 'staff' && findUser.isAdmin !== true) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền truy cập trang Staff',
+                });
+            }
+
+            req.user = buildUserPayload(findUser);
+            next();
+        } catch (error) {
+            clearTokenCookie(res);
+            return res.status(401).json({
+                success: false,
+                message: 'Token staff không hợp lệ hoặc đã hết hạn',
+            });
+        }
+    },
+
+    verifyTokenDoctor: async (req, res, next) => {
+        try {
+            const token = req.cookies?.Token;
+
+            if (!token) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Bạn cần đăng nhập lại',
+                });
+            }
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            let findUser = null;
+
+            if (decoded?.id) {
+                findUser = await modelUser.findById(decoded.id).select('-password');
+            } else if (decoded?.email) {
+                findUser = await modelUser.findOne({ email: decoded.email }).select('-password');
+            }
+
+            if (!findUser) {
+                clearTokenCookie(res);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy người dùng',
+                });
+            }
+
+            if (findUser.isActive === false) {
+                clearTokenCookie(res);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Tài khoản của bạn đã bị khóa',
+                    code: 'ACCOUNT_LOCKED',
+                });
+            }
+
+            if (findUser.role !== 'doctor' && findUser.isAdmin !== true) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Bạn không có quyền truy cập trang Bác sĩ',
+                });
+            }
+
+            req.user = buildUserPayload(findUser);
+            next();
+        } catch (error) {
+            clearTokenCookie(res);
+            return res.status(401).json({
+                success: false,
+                message: 'Token doctor không hợp lệ hoặc đã hết hạn',
+            });
+        }
+    },
+
     verifyTokenShipper: async (req, res, next) => {
         try {
             const token = req.cookies?.Token;

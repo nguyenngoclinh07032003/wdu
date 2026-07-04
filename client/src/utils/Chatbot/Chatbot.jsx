@@ -2,11 +2,16 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import styles from './Chatbot.module.scss';
 import { requestChat } from '../../Config/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faImage, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faImage, faPaperPlane, faUserDoctor, faHeadset } from '@fortawesome/free-solid-svg-icons';
+import { useNavigate } from 'react-router-dom';
+import { useStore } from '../../hooks/useStore';
+import { canUseCustomerAsk } from '../../utils/canUseCustomerAsk';
 import AImage from '../../assests/imgs/logoai2.png';
 import DOMPurify from 'dompurify';
 
 const Chatbot = () => {
+    const navigate = useNavigate();
+    const { dataUser } = useStore();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
@@ -26,6 +31,8 @@ const Chatbot = () => {
                 '👉 Combo tiết kiệm' +
                 '<br/>' +
                 'Em sẽ giúp anh/chị tìm được sản phẩm phù hợp nhất! 😊' +
+                '<br/><br/>' +
+                '👨‍⚕️ Cần hỏi người thật? Chọn <b>Chat với bác sĩ</b> hoặc <b>Chat với nhân viên</b> bên dưới nhé!' +
                 '<br/><br/>' +
                 '💡 Mẹo: Anh/chị có thể gửi hình ảnh hoặc mô tả triệu chứng để em tư vấn chính xác hơn nhé!',
 
@@ -187,6 +194,26 @@ const Chatbot = () => {
         }
     };
 
+    const handleHumanChat = (target) => {
+        const path = target === 'doctor' ? '/hoi-bac-si' : '/hoi-nhan-vien';
+
+        if (!dataUser?._id) {
+            navigate('/login');
+            setIsOpen(false);
+            return;
+        }
+
+        if (!canUseCustomerAsk(dataUser)) {
+            setIsOpen(false);
+            return;
+        }
+
+        navigate(path);
+        setIsOpen(false);
+    };
+
+    const showHumanChatButtons = !dataUser?._id || canUseCustomerAsk(dataUser);
+
     return (
         <>
             {!isOpen && <div className={styles.greetingBubble}>{greetingText}</div>}
@@ -271,6 +298,27 @@ const Chatbot = () => {
                             </button>
                         </div>
                     )}
+
+                    {showHumanChatButtons ? (
+                    <div className={styles.quickActions}>
+                        <button
+                            type="button"
+                            className={`${styles.quickActionBtn} ${styles.doctorBtn}`}
+                            onClick={() => handleHumanChat('doctor')}
+                        >
+                            <FontAwesomeIcon icon={faUserDoctor} />
+                            <span>Chat với bác sĩ</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.quickActionBtn} ${styles.staffBtn}`}
+                            onClick={() => handleHumanChat('staff')}
+                        >
+                            <FontAwesomeIcon icon={faHeadset} />
+                            <span>Chat với nhân viên</span>
+                        </button>
+                    </div>
+                    ) : null}
 
                     <form onSubmit={handleSubmit} className={styles.inputForm}>
                         <label className={styles.uploadButton} title="Tải ảnh lên">

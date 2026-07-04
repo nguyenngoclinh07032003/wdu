@@ -82,6 +82,8 @@ function ModalEditUser({ show, setShow, dataOneUser, fetchData }) {
                     <label className={cx('label')}>Chức vụ</label>
                     <select className={cx('select')} value={role} onChange={(e) => setRole(e.target.value)}>
                         <option value="user">Người dùng</option>
+                        <option value="staff">Nhân viên (Staff)</option>
+                        <option value="doctor">Bác sĩ (Doctor)</option>
                         <option value="admin">Quản trị viên</option>
                         <option value="shipper">Shipper</option>
                     </select>

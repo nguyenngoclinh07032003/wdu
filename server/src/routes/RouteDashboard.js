@@ -4,6 +4,6 @@ const router = express.Router();
 const ControllerDashboard = require('../controllers/ControllerDashboard');
 const ControllerJWT = require('../jwt/ControllerJWT');
 
-router.get('/dashboard', ControllerJWT.verifyToken, ControllerDashboard.getDashboard);
+router.get('/dashboard', ControllerJWT.verifyTokenStaffOrAdmin, ControllerDashboard.getDashboard);
 
 module.exports = router;

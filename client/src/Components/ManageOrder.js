@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 import { faMagnifyingGlass, faFileExport } from '@fortawesome/free-solid-svg-icons';
 const cx = classNames.bind(styles);
 
-function ManageOrder() {
+function ManageOrder({ allowCancelOrder = true }) {
     const [dataCart, setDataCart] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [idPro, setIdPro] = useState('');
@@ -321,7 +321,7 @@ function ManageOrder() {
                                     const firstProduct = products[0];
                                     const remainCount = products.length > 1 ? products.length - 1 : 0;
                                     const canUpdate = canAdminUpdateOrder(status);
-                                    const canCancel = status !== 'completed' && status !== 'cancelled';
+                                    const canCancel = allowCancelOrder && status !== 'completed' && status !== 'cancelled';
 
                                     return (
                                         <tr key={item._id}>

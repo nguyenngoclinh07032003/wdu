@@ -30,8 +30,14 @@ function ManagerUser() {
 
     const getRoleLabel = (role, isAdmin) => {
         if (role === 'admin' || isAdmin) return 'Quản trị viên';
+        if (role === 'staff') return 'Nhân viên (Staff)';
+        if (role === 'doctor') return 'Bác sĩ (Doctor)';
         if (role === 'shipper') return 'Shipper';
         return 'Người dùng';
+    };
+
+    const isShipperStatusLocked = (user) => {
+        return user?.role === 'shipper' && user?.isActive !== false && (user?.hasActiveDelivery || user?.activeDeliveryCount > 0);
     };
 
     const handlePageChange = (event, value) => {
@@ -83,6 +89,13 @@ function ManagerUser() {
     };
 
     const handleToggleStatus = async (user) => {
+        if (isShipperStatusLocked(user)) {
+            toast.error(
+                `Shipper đang giao ${user.activeDeliveryCount || 1} đơn hàng. Chỉ khóa được khi không còn đơn đang giao hoặc đã hoàn thành.`,
+            );
+            return;
+        }
+
         try {
             const newStatus = !user.isActive;
 
@@ -263,11 +276,23 @@ function ManagerUser() {
                                         <td>
                                             <div className={cx('statusToggle')}>
                                                 <div
-                                                    className={cx('switch', user?.isActive ? 'active' : 'inactive')}
-                                                    onClick={() => handleToggleStatus(user)}
+                                                    className={cx('switch', user?.isActive ? 'active' : 'inactive', {
+                                                        disabled: isShipperStatusLocked(user),
+                                                    })}
+                                                    onClick={() => {
+                                                        if (!isShipperStatusLocked(user)) {
+                                                            handleToggleStatus(user);
+                                                        }
+                                                    }}
                                                     role="button"
-                                                    tabIndex={0}
+                                                    tabIndex={isShipperStatusLocked(user) ? -1 : 0}
+                                                    title={
+                                                        isShipperStatusLocked(user)
+                                                            ? `Shipper đang giao ${user.activeDeliveryCount || 1} đơn, chưa thể khóa`
+                                                            : undefined
+                                                    }
                                                     onKeyDown={(e) => {
+                                                        if (isShipperStatusLocked(user)) return;
                                                         if (e.key === 'Enter' || e.key === ' ') {
                                                             handleToggleStatus(user);
                                                         }
@@ -280,6 +305,12 @@ function ManagerUser() {
                                                     className={cx('statusText', user?.isActive ? 'active' : 'locked')}
                                                 >
                                                     {user?.isActive ? 'Hoạt động' : 'Bị khóa'}
+                                                    {isShipperStatusLocked(user) ? (
+                                                        <span className={cx('deliveryHint')}>
+                                                            {' '}
+                                                            (Đang giao {user.activeDeliveryCount} đơn)
+                                                        </span>
+                                                    ) : null}
                                                 </span>
                                             </div>
                                         </td>

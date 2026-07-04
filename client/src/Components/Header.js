@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { useStore } from '../hooks/useStore';
+import { canUseCustomerAsk } from '../utils/canUseCustomerAsk';
 
 const cx = classNames.bind(styles);
 
@@ -23,6 +24,7 @@ function Header() {
     const { dataUser, dataCart } = useStore();
 
     const debounce = useDebounce(searchValue, 500);
+    const showCustomerAskLinks = canUseCustomerAsk(dataUser);
 
     const handleClose = () => setShow(false);
     const handleShowMenu = () => setShow(true);
@@ -186,10 +188,41 @@ function Header() {
                                         </Link>
                                     </li>
 
+                                    {showCustomerAskLinks && (
+                                        <>
+                                            <li>
+                                                <Link className="dropdown-item" to="/hoi-bac-si">
+                                                    Hỏi bác sĩ
+                                                </Link>
+                                            </li>
+                                            <li>
+                                                <Link className="dropdown-item" to="/hoi-nhan-vien">
+                                                    Hỏi nhân viên
+                                                </Link>
+                                            </li>
+                                        </>
+                                    )}
+
                                     {dataUser?.isAdmin && (
                                         <li>
                                             <Link className="dropdown-item" to="/admin">
                                                 Trang Quản Trị
+                                            </Link>
+                                        </li>
+                                    )}
+
+                                    {dataUser?.role === 'staff' && (
+                                        <li>
+                                            <Link className="dropdown-item" to="/staff">
+                                                Trang Nhân Viên
+                                            </Link>
+                                        </li>
+                                    )}
+
+                                    {dataUser?.role === 'doctor' && (
+                                        <li>
+                                            <Link className="dropdown-item" to="/doctor">
+                                                Trang Bác Sĩ
                                             </Link>
                                         </li>
                                     )}
@@ -297,10 +330,41 @@ function Header() {
                                 </Link>
                             </li>
 
+                            {showCustomerAskLinks && (
+                                <>
+                                    <li>
+                                        <Link to="/hoi-bac-si" onClick={handleClose}>
+                                            Hỏi bác sĩ
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/hoi-nhan-vien" onClick={handleClose}>
+                                            Hỏi nhân viên
+                                        </Link>
+                                    </li>
+                                </>
+                            )}
+
                             {dataUser?.isAdmin && (
                                 <li>
                                     <Link to="/admin" onClick={handleClose}>
                                         Trang Quản Trị
+                                    </Link>
+                                </li>
+                            )}
+
+                            {dataUser?.role === 'staff' && (
+                                <li>
+                                    <Link to="/staff" onClick={handleClose}>
+                                        Trang Nhân Viên
+                                    </Link>
+                                </li>
+                            )}
+
+                            {dataUser?.role === 'doctor' && (
+                                <li>
+                                    <Link to="/doctor" onClick={handleClose}>
+                                        Trang Bác Sĩ
                                     </Link>
                                 </li>
                             )}

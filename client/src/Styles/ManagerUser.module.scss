@@ -219,6 +219,17 @@
     background: #cbd5e1;
 }
 
+.switch.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.deliveryHint {
+    font-size: 12px;
+    font-weight: 600;
+    color: #b45309;
+}
+
 .statusText {
     font-size: 14px;
     font-weight: 700;

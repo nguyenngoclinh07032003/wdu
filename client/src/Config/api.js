@@ -38,6 +38,16 @@ export const requestAdmin = async () => {
     return res.data;
 };
 
+export const requestStaff = async () => {
+    const res = await request.get('/api/staff');
+    return res.data;
+};
+
+export const requestDoctor = async () => {
+    const res = await request.get('/api/doctor');
+    return res.data;
+};
+
 export const requestChat = async (data) => {
     const res = await request.post('/api/chatbot', data);
     return res.data;

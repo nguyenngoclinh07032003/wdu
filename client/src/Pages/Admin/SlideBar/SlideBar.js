@@ -10,6 +10,7 @@ import {
     faBlog,
     faGear,
     faGift,
+    faUserDoctor,
 } from '@fortawesome/free-solid-svg-icons';
 import request from '../../../Config/api';
 import { useNavigate } from 'react-router-dom';
@@ -171,6 +172,16 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                         <FontAwesomeIcon icon={faGear} />
                     </span>
                     <span>Quản Lý Shipping</span>
+                </li>
+
+                <li
+                    onClick={() => setCheckTypeSlideBar(8)}
+                    className={cx('menuItem', { active: checkTypeSlideBar === 8 })}
+                >
+                    <span className={cx('icon')}>
+                        <FontAwesomeIcon icon={faUserDoctor} />
+                    </span>
+                    <span>Duyệt Bác sĩ</span>
                 </li>
             </ul>
             <div className={cx('footer')}>

@@ -11,6 +11,7 @@ import ManageVoucher from '../../../Components/ManageVoucher';
 import ManageBlog from '../../../Components/ManageBlog';
 import Dashboard from '../../../Components/Dashboard';
 import ManageShpper from '../../../Components/ManageShipper';
+import ManageDoctorCertificates from '../../../Components/ManageDoctorCertificates';
 
 const cx = classNames.bind(styles);
 
@@ -36,6 +37,7 @@ function HomePage({ checkTypeSlideBar }) {
             {checkTypeSlideBar === 5 ? <ManageVoucher /> : <></>}
             {checkTypeSlideBar === 6 ? <ManageBlog /> : <></>}
             {checkTypeSlideBar === 7 ? <ManageShpper /> : <></>}
+            {checkTypeSlideBar === 8 ? <ManageDoctorCertificates /> : <></>}
         </div>
     );
 }

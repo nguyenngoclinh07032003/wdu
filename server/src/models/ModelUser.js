@@ -21,8 +21,6 @@ const ModelUser = new Schema({
         required: function () {
             return !this.isGoogleAccount;
         },
-        unique: true,
-        sparse: true,
     },
 
     isGoogleAccount: {
@@ -33,7 +31,7 @@ const ModelUser = new Schema({
     isAdmin: { type: Boolean, default: false },
     role: {
         type: String,
-        enum: ['user', 'admin', 'shipper'],
+        enum: ['user', 'admin', 'shipper', 'staff', 'doctor'],
         default: 'user',
     },
     isActive: { type: Boolean, default: true },

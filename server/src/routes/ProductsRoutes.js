@@ -83,7 +83,7 @@ const compressImage = async (req, res, next) => {
 
 router.post(
     '/api/addproduct',
-    ControllerJWT.verifyTokenAdmin,
+    ControllerJWT.verifyTokenStaffOrAdmin,
     upload.fields([
         {
             name: 'fileImg',
@@ -99,7 +99,7 @@ router.post(
 );
 router.post(
     '/api/editpro',
-    ControllerJWT.verifyTokenAdmin,
+    ControllerJWT.verifyTokenStaffOrAdmin,
     upload.fields([
         { name: 'fileImg', maxCount: 10 },
         { name: 'fileVideo', maxCount: 5 },
@@ -110,8 +110,8 @@ router.post(
 router.get('/api/products', controller.GetProducts);
 router.get('/api/product', controller.GetOneProducts);
 router.get('/api/search', controller.SearchProduct);
-router.delete('/api/deleteproduct', ControllerJWT.verifyTokenAdmin, controller.deletePro);
-router.post('/api/editorder', ControllerJWT.verifyTokenAdmin, controller.EditOrder);
+router.delete('/api/deleteproduct', ControllerJWT.verifyTokenStaffOrAdmin, controller.deletePro);
+router.post('/api/editorder', ControllerJWT.verifyTokenStaffOrAdmin, controller.EditOrder);
 router.get('/api/similarproduct', controller.similarProduct);
 router.get('/api/combos', controller.GetComboProducts);
 

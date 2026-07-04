@@ -39,7 +39,7 @@ router.get('/api/me', ControllerJWT.verifyToken, async (req, res) => {
 });
 router.post('/api/logout', ControllerJWT.verifyToken, ControllerUser.Logout);
 
-router.get('/api/getallorder', ControllerJWT.verifyTokenAdmin, ControllerUser.GetOrder);
+router.get('/api/getallorder', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.GetOrder);
 router.get('/api/getalluser', ControllerJWT.verifyTokenAdmin, ControllerUser.getAllUser);
 router.delete('/api/deleteuser', ControllerJWT.verifyTokenAdmin, ControllerUser.DeleteUser);
 
@@ -51,6 +51,6 @@ router.put('/api/update-status-user/:id', ControllerJWT.verifyTokenAdmin, Contro
 router.put('/api/update-user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.UpdateUser);
 router.get('/api/user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.GetUserById);
 
-router.get('/api/get-all-shipper', ControllerJWT.verifyTokenAdmin, ControllerUser.GetAllShipper);
-router.put('/api/assign-order-shipper/:orderId', ControllerJWT.verifyTokenAdmin, ControllerUser.AssignOrderToShipper);
+router.get('/api/get-all-shipper', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.GetAllShipper);
+router.put('/api/assign-order-shipper/:orderId', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.AssignOrderToShipper);
 module.exports = router;

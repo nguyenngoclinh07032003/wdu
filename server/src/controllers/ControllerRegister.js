@@ -65,12 +65,6 @@ class ControllerRegister {
                 return res.status(400).json({ message: 'Email đã tồn tại' });
             }
 
-            const phoneNumber = parseInt(phone.replace(/\D/g, ''));
-            const checkPhone = await ModelUser.findOne({ phone: phoneNumber });
-            if (checkPhone) {
-                return res.status(400).json({ message: 'Số điện thoại đã được sử dụng' });
-            }
-
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
             const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -89,9 +83,10 @@ class ControllerRegister {
                 await SendMailOTP(email, otp);
                 console.log('OTP email sent successfully to:', email);
             } catch (emailError) {
-                console.log('Email sending failed, but continuing with registration:', emailError.message);
-                // Don't fail the registration if email fails
-                // return res.status(500).json({ message: 'Không thể gửi email OTP' });
+                console.log('Email sending failed:', emailError.message);
+                return res.status(500).json({
+                    message: 'Không thể gửi email OTP. Vui lòng kiểm tra cấu hình Gmail trong server/.env',
+                });
             }
 
             return res.status(200).json({

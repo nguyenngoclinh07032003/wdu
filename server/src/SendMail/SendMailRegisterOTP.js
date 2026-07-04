@@ -1,34 +1,11 @@
-const { google } = require('googleapis');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
-
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
-const EMAIL_USER = process.env.EMAIL_USER;
-
-const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+const createMailTransport = require('./mailTransport');
 
 const SendMailOTP = async (email, otp) => {
     try {
-        const accessToken = await oAuth2Client.getAccessToken();
-
-        const transport = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: EMAIL_USER,
-                clientId: CLIENT_ID,
-                clientSecret: CLIENT_SECRET,
-                refreshToken: REFRESH_TOKEN,
-                accessToken,
-            },
-        });
+        const transport = await createMailTransport();
 
         await transport.sendMail({
-            from: `"HealthCare Device" <${EMAIL_USER}>`,
+            from: `"Mộc Xoa Store" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Mã OTP xác thực đăng ký tài khoản',
             html: `
@@ -44,7 +21,7 @@ const SendMailOTP = async (email, otp) => {
 
         return true;
     } catch (error) {
-        console.log('SendMailOTP error:', error);
+        console.log('SendMailOTP error:', error.message);
         throw error;
     }
 };

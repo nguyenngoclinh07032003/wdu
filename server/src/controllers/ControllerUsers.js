@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const ModelPayment = require('../models/ModelPayment');
 const ForgotPassword = require('../SendMail/ForgotPassword');
+const { hasActiveDelivery, getActiveDeliveryCountMap } = require('../utils/shipperDelivery');
 
 require('dotenv').config();
 
@@ -123,6 +124,7 @@ class ControllerUser {
                     avatar: dataUser.avatar,
                     surplus: dataUser.surplus,
                     isAdmin: dataUser.isAdmin,
+                    role: dataUser.role,
                     isActive: dataUser.isActive,
                 },
             });
@@ -403,8 +405,25 @@ class ControllerUser {
 
     async getAllUser(req, res) {
         try {
-            const data = await ModelUser.find({}).select('-password -resetOtp');
-            return res.status(200).json(data);
+            const data = await ModelUser.find({}).select('-password -resetOtp').lean();
+            const shipperIds = data.filter((user) => user.role === 'shipper').map((user) => user._id);
+            const activeDeliveryMap = await getActiveDeliveryCountMap(shipperIds);
+
+            const enriched = data.map((user) => {
+                if (user.role !== 'shipper') {
+                    return user;
+                }
+
+                const activeDeliveryCount = activeDeliveryMap[String(user._id)] || 0;
+
+                return {
+                    ...user,
+                    activeDeliveryCount,
+                    hasActiveDelivery: activeDeliveryCount > 0,
+                };
+            });
+
+            return res.status(200).json(enriched);
         } catch (error) {
             console.error('getAllUser error:', error);
             return res.status(500).json({
@@ -498,6 +517,18 @@ class ControllerUser {
                 });
             }
 
+            if (isActive === false && findUser.role === 'shipper') {
+                const delivering = await hasActiveDelivery(findUser._id);
+
+                if (delivering) {
+                    return res.status(400).json({
+                        message:
+                            'Không thể khóa shipper đang giao hàng. Vui lòng đợi shipper hoàn thành hoặc xử lý xong các đơn được gán.',
+                        code: 'SHIPPER_DELIVERING',
+                    });
+                }
+            }
+
             findUser.isActive = isActive;
             findUser.updatedAt = Date.now();
             await findUser.save();
@@ -542,7 +573,7 @@ class ControllerUser {
 
             // cập nhật role
             if (role !== undefined) {
-                const validRoles = ['user', 'admin', 'shipper'];
+                const validRoles = ['user', 'admin', 'shipper', 'staff', 'doctor'];
 
                 if (!validRoles.includes(role)) {
                     return res.status(400).json({
@@ -569,7 +600,7 @@ class ControllerUser {
 
             if (error.code === 11000) {
                 return res.status(400).json({
-                    message: 'Email hoặc số điện thoại đã tồn tại !!!',
+                    message: 'Email đã tồn tại !!!',
                 });
             }
 
@@ -721,7 +752,7 @@ class ControllerUser {
 
             if (error.code === 11000) {
                 return res.status(400).json({
-                    message: 'Email hoặc số điện thoại đã tồn tại !!!',
+                    message: 'Email đã tồn tại !!!',
                 });
             }
 

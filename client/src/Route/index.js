@@ -19,6 +19,10 @@ import AddressBook from '../Pages/AddressBook/AddressBook';
 import CustomerDetail from '../Components/CustomerDetail';
 import VoucherPage from '../Pages/VoucherPage';
 import ShipperDashboard from '../Pages/Shipper/ShipperDashboard';
+import Staff from '../Pages/Staff/Staff';
+import Doctor from '../Pages/Doctor/Doctor';
+import AskDoctor from '../Pages/AskDoctor/AskDoctor';
+import AskStaff from '../Pages/AskStaff/AskStaff';
 
 export const publicRoute = [
     { path: '/', element: <App /> },
@@ -45,6 +49,14 @@ export const publicRoute = [
     { path: '/address-book', element: <AddressBook /> },
 
     { path: '/shipper/dashboard', element: <ShipperDashboard /> },
+
+    { path: '/staff', element: <Staff /> },
+
+    { path: '/doctor', element: <Doctor /> },
+
+    { path: '/hoi-bac-si', element: <AskDoctor /> },
+
+    { path: '/hoi-nhan-vien', element: <AskStaff /> },
 
     { path: '/admin', element: <Admin /> },
     // { path: '/admin/blog', element: <AdminBlog /> },

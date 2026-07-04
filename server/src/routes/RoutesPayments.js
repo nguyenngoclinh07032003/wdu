@@ -13,7 +13,7 @@ router.get('/dataorderuser', middlewareController.verifyToken, ControllerPayment
 router.post('/cancelorder', middlewareController.verifyToken, ControllerPayments.CancelOrder);
 router.post('/paymentvnpay', middlewareController.verifyToken, ControllerPayments.paymentVnpay);
 router.get('/check-payment-vnpay', ControllerPayments.checkPaymentVnpay);
-router.post('/admin/update-order', middlewareController.verifyTokenAdmin, ControllerPayments.EditOrder);
+router.post('/admin/update-order', middlewareController.verifyTokenStaffOrAdmin, ControllerPayments.EditOrder);
 router.post('/admin/cancelorder', middlewareController.verifyTokenAdmin, ControllerPayments.AdminCancelOrder);
 
 module.exports = router;

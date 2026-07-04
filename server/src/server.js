@@ -1,3 +1,4 @@
+require('./Config/loadEnv');
 const express = require('express');
 const app = express();
 const route = require('./routes');
@@ -11,7 +12,6 @@ const { Server } = require('socket.io');
 const { askQuestion } = require('./utils/chatbot');
 const startReminderMailJob = require('./jobs/reminderMailJob');
 const multer = require('multer');
-require('dotenv').config();
 
 const PORT = process.env.PORT || 5001;
 const server = http.createServer(app);
