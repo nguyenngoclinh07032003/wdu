@@ -1,4 +1,3 @@
-// Bad words utility placeholder
 const badWords = [
     'địt',
     'đụ',

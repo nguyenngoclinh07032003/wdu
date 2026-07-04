@@ -8,14 +8,14 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import AccountSidebar from './Admin/ProfileUser/AccountSidebar';
-import ProfileCard from './Admin/ProfileUser/ProfileCard';
-import PersonalInfoForm from './Admin/ProfileUser/PersonalInfoForm';
-import OrderActivity from './Admin/ProfileUser/OrderActivity';
+import AccountSidebar from '../Pages/ProfileUser/AccountSidebar';
+import ProfileCard from '../Pages/ProfileUser/ProfileCard';
+import PersonalInfoForm from '../Pages/ProfileUser/PersonalInfoForm';
+import OrderActivity from '../Pages/ProfileUser/OrderActivity';
 import OrderDetailModal from '../utils/Modal/ModalDetailOder';
 import AddressBook from './AddressBook/AddressBook';
-import ReviewProduct from './Admin/ProfileUser/ReviewPro';
-import ReminderPage from './Admin/ProfileUser/ReminderPage';
+import ReviewProduct from '../Pages/ProfileUser/ReviewPro';
+import ReminderPage from '../Pages/ProfileUser/ReminderPage';
 
 const cx = classNames.bind(styles);
 

@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.send('Chatbot route');
-});
+const ControllerChatbot = require('../controllers/ControllerChatbot');
+const ControllerJWT = require('../jwt/ControllerJWT');
+
+router.post('/api/chatbot', ControllerJWT.optionalVerifyToken, ControllerChatbot.chat);
 
 module.exports = router;

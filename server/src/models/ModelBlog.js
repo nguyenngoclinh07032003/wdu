@@ -1,4 +1,3 @@
-// Blog model placeholder
 const mongoose = require('mongoose');
 
 const PostSchema = new mongoose.Schema(
@@ -36,4 +35,4 @@ const PostSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-module.exports = mongoose.model('Blog', PostSchema);
+module.exports = mongoose.model('Blog', PostSchema, 'shoe.blogs');

@@ -4,7 +4,7 @@ import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { publicRoute } from './Route';
 import { Provider } from './store/Provider';
-import ProtectedAdminRoute from './Route/ProtectedAdminRoute';
+import ProtectedAdminRoute from '../../client/src/Route/ProtectedAdminRoute';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -14,6 +14,7 @@ root.render(
             <Router>
                 <Routes>
                     {publicRoute.map((route, index) => {
+                        // Chặn admin
                         if (route.path === '/admin') {
                             return (
                                 <Route
@@ -23,6 +24,7 @@ root.render(
                                 />
                             );
                         }
+
                         return <Route key={index} path={route.path} element={route.element} />;
                     })}
                 </Routes>

@@ -1,4 +1,3 @@
-// Admin blog controller placeholder
 const Blog = require('../models/ModelBlog');
 const slugify = require('slugify');
 

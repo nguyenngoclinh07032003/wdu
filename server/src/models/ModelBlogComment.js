@@ -1,4 +1,3 @@
-// Blog comment model placeholder
 const mongoose = require('mongoose');
 
 const BlogCommentSchema = new mongoose.Schema(
@@ -59,5 +58,4 @@ const BlogCommentSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-module.exports = mongoose.model('blogComment', BlogCommentSchema);
-
+module.exports = mongoose.model('blogComment', BlogCommentSchema, 'shoe.blogcomments');

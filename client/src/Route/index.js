@@ -14,7 +14,7 @@ import About from '../Pages/About';
 import Blog from '../Pages/Blog';
 import DetailBlog from '../Pages/DetailBlog';
 import AdminBlog from '../Components/ManageBlog';
-import CreateBlog from '../Pages/Admin/CreateBlog';
+import CreateBlog from '../Pages/Admin/ComponentsAdmin/CreateBlog';
 import AddressBook from '../Pages/AddressBook/AddressBook';
 import CustomerDetail from '../Components/CustomerDetail';
 import VoucherPage from '../Pages/VoucherPage';
