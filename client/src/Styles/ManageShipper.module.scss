@@ -176,49 +176,6 @@ $blue: #3b82f6;
     border: 1px solid #dbe9bd;
 }
 
-.fakeMap {
-    height: 330px;
-    position: relative;
-    background:
-        radial-gradient(circle at center, rgba(225, 240, 196, 0.55), transparent 36%),
-        linear-gradient(135deg, #eef7de 0%, #d7ebaf 45%, #c8df98 100%);
-}
-
-.pin {
-    position: absolute;
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: $white;
-    color: $primary-text;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    border: 1px solid #cfe2a7;
-    box-shadow: 0 8px 20px rgba(82, 103, 53, 0.18);
-}
-
-.pin1 {
-    top: 34%;
-    left: 42%;
-}
-
-.pin2 {
-    top: 63%;
-    left: 68%;
-}
-
-.pin3 {
-    top: 28%;
-    left: 24%;
-}
-
-.pin4 {
-    top: 55%;
-    left: 52%;
-}
-
 .tools {
     display: flex;
     gap: 18px;

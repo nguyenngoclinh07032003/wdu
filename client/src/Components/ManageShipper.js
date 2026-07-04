@@ -16,6 +16,7 @@ import {
     faDownload,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import ShipperDeliveryMap from './ShipperDeliveryMap';
 
 const cx = classNames.bind(styles);
 
@@ -54,6 +55,9 @@ function ManageShipper() {
 
     useEffect(() => {
         fetchData();
+
+        const intervalId = setInterval(fetchData, 30000);
+        return () => clearInterval(intervalId);
     }, []);
 
     const activeShippers = useMemo(() => {
@@ -232,12 +236,7 @@ function ManageShipper() {
                             <span className={cx('live')}>LIVE</span>
                         </div>
 
-                        <div className={cx('fakeMap')}>
-                            <div className={cx('pin', 'pin1')}>🚚</div>
-                            <div className={cx('pin', 'pin2')}>📦</div>
-                            <div className={cx('pin', 'pin3')}>+</div>
-                            <div className={cx('pin', 'pin4')}>+</div>
-                        </div>
+                        <ShipperDeliveryMap shippers={shippers} orders={orders} />
                     </div>
 
                     <div className={cx('shipperCard')}>
