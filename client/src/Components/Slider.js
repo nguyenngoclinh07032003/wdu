@@ -19,6 +19,7 @@ const cx = classNames.bind(styles);
 function Slider() {
     const navigate = useNavigate();
     const [showShippingPopup, setShowShippingPopup] = React.useState(false);
+    const [showWarrantyPopup, setShowWarrantyPopup] = React.useState(false);
     const banners = [
         { src: banner1, alt: 'Banner 1' },
         { src: banner2, alt: 'Banner 2' },
@@ -86,7 +87,15 @@ function Slider() {
                     </div>
                 </div>
 
-                <div className={cx('box')}>
+                <div
+                    className={cx('box')}
+                    onClick={() => setShowWarrantyPopup(true)}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Xem chính sách bảo hành"
+                    onKeyDown={(e) => e.key === 'Enter' && setShowWarrantyPopup(true)}
+                >
                     <img src={qualityIcon} alt="Bảo hành" />
                     <div className={cx('info')}>
                         <span className={cx('title')}>Bảo hành 6 tháng</span>
@@ -189,6 +198,72 @@ function Slider() {
                             }}
                         >
                             Mua hàng ngay
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* Popup Bảo hành 6 tháng */}
+            {showWarrantyPopup && (
+                <div
+                    className={cx('popupOverlay')}
+                    onClick={() => setShowWarrantyPopup(false)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Chính sách bảo hành"
+                >
+                    <div className={cx('popupBox')} onClick={(e) => e.stopPropagation()}>
+                        <div className={cx('popupHeader')}>
+                            <img src={qualityIcon} alt="bảo hành" className={cx('popupIcon')} />
+                            <h2>Chính sách bảo hành</h2>
+                            <button
+                                className={cx('popupClose')}
+                                onClick={() => setShowWarrantyPopup(false)}
+                                aria-label="Đóng"
+                                type="button"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className={cx('popupBody')}>
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>🛡 Thời hạn bảo hành</span>
+                                <span className={cx('policyValue')}>
+                                    <strong>6 tháng</strong> kể từ ngày mua hàng
+                                </span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>✅ Điều kiện được bảo hành</span>
+                                <span className={cx('policyValue')}>
+                                    Sản phẩm lỗi do nhà sản xuất, còn tem niêm phong, có hóa đơn mua hàng
+                                </span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>❌ Điều kiện không bảo hành</span>
+                                <span className={cx('policyValue')}>
+                                    Hỏng do va đập, tự ý tháo lắp, ngấm nước, hết hạn bảo hành
+                                </span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>🔄 Quy trình đổi trả</span>
+                                <span className={cx('policyValue')}>
+                                    Đổi trả trong <strong>15 ngày</strong> – Liên hệ hotline hoặc mang sản phẩm đến cửa hàng
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            className={cx('popupBtn')}
+                            type="button"
+                            onClick={() => {
+                                setShowWarrantyPopup(false);
+                                navigate('/category');
+                            }}
+                        >
+                            Tiếp tục mua hàng
                         </button>
                     </div>
                 </div>
