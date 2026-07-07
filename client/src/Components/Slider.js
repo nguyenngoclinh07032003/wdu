@@ -1,6 +1,7 @@
 import React from 'react';
 import classNames from 'classnames/bind';
 import styles from '../Styles/Slider.module.scss';
+import { useNavigate } from 'react-router-dom';
 
 //banner
 import banner1 from '../assests/banner/banner5.png';
@@ -16,6 +17,7 @@ import serviceIcon from '../assests/icons/service.png';
 const cx = classNames.bind(styles);
 
 function Slider() {
+    const navigate = useNavigate();
     const banners = [
         { src: banner1, alt: 'Banner 1' },
         { src: banner2, alt: 'Banner 2' },
@@ -83,7 +85,15 @@ function Slider() {
                     </div>
                 </div>
 
-                <div className={cx('box')}>
+                <div
+                    className={cx('box')}
+                    onClick={() => navigate('/cart')}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Đi đến giỏ hàng"
+                    onKeyDown={(e) => e.key === 'Enter' && navigate('/cart')}
+                >
                     <img src={paymentIcon} alt="Thanh toán" /> <br />
                     <div className={cx('info')}>
                         <span className={cx('title')}>Thanh toán</span>
