@@ -18,6 +18,7 @@ const cx = classNames.bind(styles);
 
 function Slider() {
     const navigate = useNavigate();
+    const [showShippingPopup, setShowShippingPopup] = React.useState(false);
     const banners = [
         { src: banner1, alt: 'Banner 1' },
         { src: banner2, alt: 'Banner 2' },
@@ -32,7 +33,7 @@ function Slider() {
 
         const timer = setInterval(() => {
             setIndex((prev) => (prev + 1) % banners.length);
-        }, 3500); // thời gian chuyển banner
+        }, 3500);
 
         return () => clearInterval(timer);
     }, [banners.length]);
@@ -50,7 +51,6 @@ function Slider() {
                     ))}
                 </div>
 
-                {/* dots */}
                 {banners.length > 1 && (
                     <div className={cx('dots')}>
                         {banners.map((_, i) => (
@@ -66,9 +66,18 @@ function Slider() {
                 )}
             </div>
 
-            {/* Info boxes (giữ nguyên nội dung bạn) */}
+            {/* Info boxes */}
             <div className={cx('container')}>
-                <div className={cx('box')}>
+                {/* Miễn phí vận chuyển → mở popup */}
+                <div
+                    className={cx('box')}
+                    onClick={() => setShowShippingPopup(true)}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Xem chính sách vận chuyển"
+                    onKeyDown={(e) => e.key === 'Enter' && setShowShippingPopup(true)}
+                >
                     <img src={shipIcon} alt="Miễn phí vận chuyển" />
                     <div id={cx('info')}>
                         <span style={{ fontWeight: '800' }}>Miễn phí vận chuyển</span>
@@ -85,6 +94,7 @@ function Slider() {
                     </div>
                 </div>
 
+                {/* Thanh toán → vào /cart */}
                 <div
                     className={cx('box')}
                     onClick={() => navigate('/cart')}
@@ -94,13 +104,14 @@ function Slider() {
                     aria-label="Đi đến giỏ hàng"
                     onKeyDown={(e) => e.key === 'Enter' && navigate('/cart')}
                 >
-                    <img src={paymentIcon} alt="Thanh toán" /> <br />
+                    <img src={paymentIcon} alt="Thanh toán" />
                     <div className={cx('info')}>
                         <span className={cx('title')}>Thanh toán</span>
                         <span className={cx('desc')}>Hỗ trợ nhiều hình thức</span>
                     </div>
                 </div>
 
+                {/* Hỗ trợ 24/7 → mở chatbot */}
                 <div
                     className={cx('box', 'noBorder')}
                     onClick={() => window.dispatchEvent(new CustomEvent('openChatbot'))}
@@ -117,6 +128,71 @@ function Slider() {
                     </div>
                 </div>
             </div>
+
+            {/* Popup Chính sách vận chuyển */}
+            {showShippingPopup && (
+                <div
+                    className={cx('popupOverlay')}
+                    onClick={() => setShowShippingPopup(false)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Chính sách vận chuyển"
+                >
+                    <div className={cx('popupBox')} onClick={(e) => e.stopPropagation()}>
+                        <div className={cx('popupHeader')}>
+                            <img src={shipIcon} alt="ship" className={cx('popupIcon')} />
+                            <h2>Chính sách vận chuyển</h2>
+                            <button
+                                className={cx('popupClose')}
+                                onClick={() => setShowShippingPopup(false)}
+                                aria-label="Đóng"
+                                type="button"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className={cx('popupBody')}>
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>🎁 Điều kiện miễn phí ship</span>
+                                <span className={cx('policyValue')}>
+                                    Đơn hàng từ <strong>300.000đ</strong> trở lên
+                                </span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>📍 Khu vực áp dụng</span>
+                                <span className={cx('policyValue')}>Toàn quốc (63 tỉnh thành)</span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>⏱ Thời gian giao hàng</span>
+                                <span className={cx('policyValue')}>
+                                    Nội thành: <strong>24h</strong> – Ngoại tỉnh: <strong>2–4 ngày</strong>
+                                </span>
+                            </div>
+
+                            <div className={cx('policyItem')}>
+                                <span className={cx('policyLabel')}>🚚 Phí vận chuyển nếu không đủ điều kiện</span>
+                                <span className={cx('policyValue')}>
+                                    <strong>30.000đ</strong> cho đơn dưới 300.000đ
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            className={cx('popupBtn')}
+                            type="button"
+                            onClick={() => {
+                                setShowShippingPopup(false);
+                                navigate('/category');
+                            }}
+                        >
+                            Mua hàng ngay
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
