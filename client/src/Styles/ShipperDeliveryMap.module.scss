@@ -1,0 +1,121 @@
+.mapWrapper {
+    position: relative;
+    height: 380px;
+    background: #e8ecef;
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.mapOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.72);
+    font-size: 14px;
+    font-weight: 600;
+    color: #43534b;
+    pointer-events: none;
+}
+
+.legend {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #dfe7ef;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    font-size: 12px;
+    color: #24342d;
+    font-weight: 600;
+}
+
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.dot.shipper {
+    background: #10b934;
+}
+
+.dot.delivery {
+    background: #f59e0b;
+}
+
+.count {
+    color: #667085;
+    font-weight: 500;
+}
+
+.markerIcon {
+    background: transparent;
+    border: none;
+}
+
+.popup {
+    min-width: 180px;
+
+    strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #101828;
+    }
+
+    p {
+        margin: 0 0 6px;
+        font-size: 12px;
+        color: #667085;
+        line-height: 1.4;
+    }
+
+    span {
+        font-size: 11px;
+        font-weight: 700;
+        color: #10b934;
+        text-transform: uppercase;
+    }
+}
+
+:global {
+    .shipper-pin,
+    .delivery-pin {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        border: 2px solid #fff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+    }
+
+    .shipper-pin {
+        background: linear-gradient(135deg, #10b934, #08a832);
+    }
+
+    .delivery-pin {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    }
+
+    .leaflet-popup-content-wrapper {
+        border-radius: 10px;
+    }
+}

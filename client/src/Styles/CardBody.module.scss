@@ -1,0 +1,336 @@
+.wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdf9 100%);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(124, 198, 82, 0.12);
+
+    box-shadow:
+        0 10px 30px rgba(16, 24, 40, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+    transition:
+        transform 0.38s ease,
+        box-shadow 0.38s ease,
+        border-color 0.38s ease;
+
+    isolation: isolate;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(225, 240, 196, 0.18), transparent 42%);
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        z-index: 0;
+    }
+
+    &:hover {
+        transform: translateY(-10px);
+        border-color: rgba(124, 198, 82, 0.26);
+
+        box-shadow:
+            0 28px 55px rgba(16, 24, 40, 0.12),
+            0 10px 24px rgba(47, 125, 50, 0.08);
+
+        &::before {
+            opacity: 1;
+        }
+
+        .productImg {
+            transform: scale(1.08);
+        }
+
+        .container {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .name {
+            color: #2f7d32;
+        }
+
+        .imgInner::after {
+            opacity: 1;
+        }
+    }
+}
+
+.img {
+    position: relative;
+    width: 100%;
+    padding: 18px 18px 0;
+    z-index: 2;
+}
+
+.imgInner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    overflow: hidden;
+
+    background:
+        radial-gradient(circle at top left, rgba(225, 240, 196, 0.5), transparent 45%),
+        linear-gradient(180deg, #f9fcf6 0%, #f3f8ef 100%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.04));
+        opacity: 0;
+        transition: opacity 0.35s ease;
+    }
+}
+
+.productImg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 20px;
+
+    opacity: 0;
+    transform: scale(0.96);
+
+    transition:
+        opacity 0.35s ease,
+        transform 0.45s ease;
+}
+
+.showImg {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.skeleton {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #eef2ea;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -160px;
+        width: 120px;
+        height: 100%;
+
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+
+        animation: shimmer 1.25s infinite;
+    }
+}
+
+@keyframes shimmer {
+    100% {
+        left: 130%;
+    }
+}
+
+.fallback {
+    font-size: 14px;
+    font-weight: 700;
+    color: #98a2b3;
+}
+
+.badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 10;
+
+    min-width: 58px;
+    height: 30px;
+    padding: 0 10px;
+
+    border-radius: 999px;
+
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.3px;
+
+    box-shadow: 0 12px 24px rgba(239, 68, 68, 0.24);
+}
+
+.container {
+    position: absolute;
+    right: 24px;
+    bottom: 14px;
+    z-index: 12;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    opacity: 0;
+    transform: translateY(10px);
+
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
+
+    button {
+        width: 44px;
+        height: 44px;
+
+        border: none;
+        border-radius: 50%;
+
+        background: rgba(255, 255, 255, 0.96);
+        color: #1f2937;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        cursor: pointer;
+
+        box-shadow:
+            0 10px 24px rgba(16, 24, 40, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+        backdrop-filter: blur(10px);
+
+        transition:
+            transform 0.25s ease,
+            background 0.25s ease,
+            color 0.25s ease,
+            box-shadow 0.25s ease;
+
+        &:hover {
+            background: linear-gradient(135deg, #2f7d32, #3d9a43);
+            color: #fff;
+
+            transform: scale(1.08);
+
+            box-shadow: 0 16px 28px rgba(47, 125, 50, 0.22);
+        }
+
+        svg {
+            font-size: 15px;
+        }
+    }
+}
+
+.info {
+    position: relative;
+    z-index: 2;
+    padding: 20px 20px 24px;
+}
+
+.name {
+    min-height: 50px;
+    margin: 0 0 16px;
+
+    color: #111827;
+    font-size: 17px;
+    font-weight: 850;
+    line-height: 1.5;
+
+    transition: color 0.25s ease;
+
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+
+    overflow: hidden;
+}
+
+.priceRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.oldPrice {
+    font-size: 14px;
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+
+.newPrice {
+    color: #dc2626;
+    font-size: 24px;
+    font-weight: 950;
+    letter-spacing: -0.4px;
+}
+
+/* Hover shine */
+.wrapper::after {
+    content: '';
+    position: absolute;
+    top: -40%;
+    left: -120%;
+    width: 55%;
+    height: 200%;
+
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+
+    transform: rotate(24deg);
+    transition: left 0.8s ease;
+    pointer-events: none;
+}
+
+.wrapper:hover::after {
+    left: 140%;
+}
+
+@media (max-width: 768px) {
+    .wrapper {
+        border-radius: 18px;
+    }
+
+    .img {
+        padding: 14px 14px 0;
+    }
+
+    .imgInner {
+        border-radius: 16px;
+    }
+
+    .productImg {
+        padding: 16px;
+    }
+
+    .info {
+        padding: 16px 16px 20px;
+    }
+
+    .name {
+        min-height: auto;
+        font-size: 15px;
+    }
+
+    .newPrice {
+        font-size: 20px;
+    }
+
+    .container {
+        opacity: 1;
+        transform: translateY(0);
+        right: 18px;
+        bottom: 10px;
+
+        button {
+            width: 40px;
+            height: 40px;
+        }
+    }
+}
