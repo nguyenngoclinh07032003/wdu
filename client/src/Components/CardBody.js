@@ -8,6 +8,8 @@ import { faCartPlus } from '@fortawesome/free-solid-svg-icons';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useStore } from '../hooks/useStore';
 
 const cx = classNames.bind(styles);
 
@@ -15,8 +17,24 @@ function CardBody({ item }) {
     const [show, setShow] = useState(false);
     const [imgLoaded, setImgLoaded] = useState(false);
     const [imgError, setImgError] = useState(false);
+    const [addingToCart, setAddingToCart] = useState(false);
+    const { getCart } = useStore();
 
-    const handleAddToCart = () => addToCartProduct(item);
+    const handleAddToCart = async () => {
+        if (addingToCart) return;
+        setAddingToCart(true);
+        try {
+            const res = await addToCartProduct(item, 1);
+            if (res) {
+                toast.success('Đã thêm vào giỏ hàng!');
+                await getCart();
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Thêm vào giỏ hàng thất bại');
+        } finally {
+            setAddingToCart(false);
+        }
+    };
     const handleShowModal = () => setShow(true);
     const handleClose = () => setShow(false);
 
@@ -67,7 +85,7 @@ function CardBody({ item }) {
                     </div>
 
                     <div className={cx('container')}>
-                        <button onClick={handleAddToCart}>
+                        <button onClick={handleAddToCart} disabled={addingToCart} title="Thêm vào giỏ hàng">
                             <FontAwesomeIcon icon={faCartPlus} />
                         </button>
                         <button onClick={handleShowModal}>

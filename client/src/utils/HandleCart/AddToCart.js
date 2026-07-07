@@ -2,10 +2,10 @@ import request from '../../Config/api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const AddToCartProduct = async (props, quantity, selectSize) => {
+const AddToCartProduct = async (props, quantity = 1, selectSize) => {
     const token = document.cookie;
 
-    if (!token) {
+    if (!token || !token.includes('logged=1')) {
         return toast.error('Bạn Cần Đăng Nhập Trước !!!');
     }
     try {
@@ -23,6 +23,7 @@ const AddToCartProduct = async (props, quantity, selectSize) => {
         return res;
     } catch (error) {
         console.log(error);
+        throw error;
     }
 };
 
