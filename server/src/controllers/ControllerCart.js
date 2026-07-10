@@ -1,0 +1,479 @@
+const modelCart = require('../models/ModelCart');
+const modelUser = require('../models/ModelUser');
+const ModelVoucher = require('../models/ModelVoucher');
+
+const SHIPPING_FEE = 30000;
+
+// Hàm để tính toán và áp dụng voucher cho giỏ hàng
+const resetCartVoucher = (cart) => {
+    cart.voucher = {
+        code: '',
+        title: '',
+        category: 'device',
+        discountType: 'money',
+        discountValue: 0,
+        discountAmount: 0,
+    };
+};
+
+const validateCartVoucher = async (cart) => {
+    if (!cart?.voucher?.code) return;
+
+    const voucher = await ModelVoucher.findOne({
+        code: cart.voucher.code,
+    });
+
+    if (!voucher) {
+        resetCartVoucher(cart);
+        return;
+    }
+
+    if (!voucher.isActive || new Date() > new Date(voucher.expiredAt)) {
+        resetCartVoucher(cart);
+        return;
+    }
+
+    if (voucher.quantity !== 0 && voucher.used >= voucher.quantity) {
+        resetCartVoucher(cart);
+        return;
+    }
+
+    if (cart.sumprice < voucher.minOrderValue) {
+        resetCartVoucher(cart);
+        return;
+    }
+
+    const baseAmount = voucher.category === 'shipping' ? SHIPPING_FEE : cart.sumprice;
+
+    let discountAmount = 0;
+
+    if (voucher.discountType === 'percent') {
+        discountAmount = (baseAmount * voucher.discountValue) / 100;
+
+        if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
+            discountAmount = voucher.maxDiscount;
+        }
+    } else {
+        discountAmount = voucher.discountValue;
+    }
+
+    if (discountAmount > baseAmount) {
+        discountAmount = baseAmount;
+    }
+
+    cart.voucher = {
+        code: voucher.code,
+        title: voucher.title,
+        category: voucher.category,
+        discountType: voucher.discountType,
+        discountValue: voucher.discountValue,
+        discountAmount,
+    };
+};
+class ControllerCart {
+    async AddToCart(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const { nameProduct, quantityProduct, priceProduct, imgProduct, size, type } = req.body;
+
+            if (!nameProduct || !quantityProduct || !priceProduct || !imgProduct || !type) {
+                return res.status(400).json({
+                    message: 'Dữ liệu không đầy đủ!',
+                });
+            }
+
+            const dataUser = await modelCart.findOne({ user: user.email });
+            const dataUser2 = await modelUser.findOne({ email: user.email });
+
+            if (dataUser) {
+                const updatedCart = await modelCart.findOneAndUpdate(
+                    { user: user.email },
+                    {
+                        $push: {
+                            products: {
+                                nameProduct,
+                                quantity: quantityProduct,
+                                price: priceProduct,
+                                size,
+                                img: imgProduct,
+                                type,
+                            },
+                        },
+                        $inc: {
+                            sumprice: priceProduct * quantityProduct,
+                        },
+                    },
+                    { new: true },
+                );
+
+                if (updatedCart) {
+                    return res.status(200).json({
+                        message: 'Thêm Vào Giỏ Hàng Thành Công !!!',
+                    });
+                }
+            } else {
+                const newCart = new modelCart({
+                    products: [
+                        {
+                            nameProduct,
+                            quantity: quantityProduct,
+                            price: priceProduct,
+                            size,
+                            img: imgProduct,
+                            type,
+                        },
+                    ],
+                    sumprice: priceProduct * quantityProduct,
+                    user: user.email,
+                    phone: dataUser2?.phone || 0,
+                });
+
+                await newCart.save();
+
+                return res.status(200).json({
+                    message: 'Thêm Vào Giỏ Hàng Thành Công !!!',
+                });
+            }
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có Lỗi Xảy Ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async GetCart(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const dataCart = await modelCart.find({ user: user.email });
+
+            return res.status(200).json(dataCart);
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có lỗi xảy ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async DeleteCart(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const { id } = req.body;
+
+            if (!id) {
+                return res.status(400).json({
+                    message: 'ID sản phẩm không hợp lệ!',
+                });
+            }
+
+            const cart = await modelCart.findOne({ user: user.email });
+
+            if (!cart) {
+                return res.status(404).json({
+                    message: 'Không tìm thấy giỏ hàng!',
+                });
+            }
+
+            const productIndex = cart.products.findIndex((product) => product._id.toString() === id);
+
+            if (productIndex === -1) {
+                return res.status(404).json({
+                    message: 'Sản phẩm không tồn tại trong giỏ hàng!',
+                });
+            }
+
+            const removedProduct = cart.products[productIndex];
+
+            cart.sumprice -= removedProduct.price * removedProduct.quantity;
+            cart.products.splice(productIndex, 1);
+
+            if (cart.sumprice < 0) {
+                cart.sumprice = 0;
+            }
+
+            await validateCartVoucher(cart);
+
+            await cart.save();
+
+            return res.status(200).json({
+                message: 'Xóa Sản Phẩm Thành Công !!!',
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có Lỗi Xảy Ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async updateInfoCart(req, res) {
+        try {
+            const { name, phone, address } = req.body;
+
+            if (!name || !phone || !address) {
+                return res.status(400).json({
+                    message: 'Dữ liệu không đầy đủ',
+                });
+            }
+
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const updatedCart = await modelCart.findOneAndUpdate(
+                { user: user.email },
+                { name, phone, address },
+                { new: true },
+            );
+
+            if (!updatedCart) {
+                return res.status(404).json({
+                    message: 'Không tìm thấy giỏ hàng',
+                });
+            }
+
+            return res.status(200).json({
+                message: 'Cập nhật thông tin giỏ hàng thành công',
+                updatedCart,
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có lỗi xảy ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async UpdateQuantityCart(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const { id, quantity } = req.body;
+
+            if (!id || quantity === undefined) {
+                return res.status(400).json({
+                    message: 'Thiếu id hoặc số lượng sản phẩm!',
+                });
+            }
+
+            if (quantity < 1) {
+                return res.status(400).json({
+                    message: 'Số lượng phải lớn hơn 0!',
+                });
+            }
+
+            const cart = await modelCart.findOne({ user: user.email });
+
+            if (!cart) {
+                return res.status(404).json({
+                    message: 'Không tìm thấy giỏ hàng!',
+                });
+            }
+
+            const product = cart.products.find((item) => item._id.toString() === id);
+
+            if (!product) {
+                return res.status(404).json({
+                    message: 'Sản phẩm không tồn tại trong giỏ hàng!',
+                });
+            }
+
+            cart.sumprice -= product.price * product.quantity;
+            product.quantity = quantity;
+            cart.sumprice += product.price * product.quantity;
+
+            await validateCartVoucher(cart);
+            await cart.save();
+
+            return res.status(200).json({
+                message: 'Cập nhật số lượng sản phẩm thành công!',
+                cart,
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có lỗi xảy ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async ApplyVoucher(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const { code } = req.body;
+
+            if (!code) {
+                return res.status(400).json({
+                    message: 'Vui lòng nhập mã voucher',
+                });
+            }
+
+            const cart = await modelCart.findOne({ user: user.email });
+
+            if (!cart || cart.products.length === 0) {
+                return res.status(404).json({
+                    message: 'Giỏ hàng đang trống',
+                });
+            }
+
+            const voucher = await ModelVoucher.findOne({
+                code: String(code).trim().toUpperCase(),
+            });
+
+            if (!voucher) {
+                return res.status(404).json({
+                    message: 'Voucher không tồn tại',
+                });
+            }
+
+            if (!voucher.isActive) {
+                return res.status(400).json({
+                    message: 'Voucher đã bị tắt',
+                });
+            }
+
+            if (new Date() > new Date(voucher.expiredAt)) {
+                voucher.isActive = false;
+                await voucher.save();
+
+                return res.status(400).json({
+                    message: 'Voucher đã hết hạn',
+                });
+            }
+
+            if (voucher.quantity !== 0 && voucher.used >= voucher.quantity) {
+                return res.status(400).json({
+                    message: 'Voucher đã hết lượt sử dụng',
+                });
+            }
+
+            if (cart.sumprice < voucher.minOrderValue) {
+                return res.status(400).json({
+                    message: `Đơn hàng tối thiểu ${voucher.minOrderValue.toLocaleString('vi-VN')}đ`,
+                });
+            }
+
+            const baseAmount = voucher.category === 'shipping' ? SHIPPING_FEE : cart.sumprice;
+
+            let discountAmount = 0;
+
+            if (voucher.discountType === 'percent') {
+                discountAmount = (baseAmount * voucher.discountValue) / 100;
+
+                if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
+                    discountAmount = voucher.maxDiscount;
+                }
+            } else {
+                discountAmount = voucher.discountValue;
+            }
+
+            if (discountAmount > baseAmount) {
+                discountAmount = baseAmount;
+            }
+
+            cart.voucher = {
+                code: voucher.code,
+                title: voucher.title,
+                category: voucher.category,
+                discountType: voucher.discountType,
+                discountValue: voucher.discountValue,
+                discountAmount,
+            };
+
+            await validateCartVoucher(cart);
+            await cart.save();
+
+            return res.status(200).json({
+                message: 'Áp dụng voucher thành công',
+                voucher: cart.voucher,
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có lỗi xảy ra !!!',
+                error: err.message,
+            });
+        }
+    }
+
+    async RemoveVoucher(req, res) {
+        try {
+            const user = req.user;
+
+            if (!user || !user.email) {
+                return res.status(401).json({
+                    message: 'Không có token, vui lòng đăng nhập lại!',
+                });
+            }
+
+            const cart = await modelCart.findOne({ user: user.email });
+
+            if (!cart) {
+                return res.status(404).json({
+                    message: 'Không tìm thấy giỏ hàng',
+                });
+            }
+
+            cart.voucher = {
+                code: '',
+                title: '',
+                category: 'device',
+                discountType: 'money',
+                discountValue: 0,
+                discountAmount: 0,
+            };
+
+            await validateCartVoucher(cart);
+            await cart.save();
+
+            return res.status(200).json({
+                message: 'Đã xóa voucher',
+            });
+        } catch (err) {
+            return res.status(500).json({
+                message: 'Có lỗi xảy ra !!!',
+                error: err.message,
+            });
+        }
+    }
+}
+
+module.exports = new ControllerCart();
