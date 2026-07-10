@@ -1,0 +1,306 @@
+/* =========================
+   THEME
+========================= */
+$primary: #7cc652;
+$primary-dark: #2f7d32;
+$text: #163020;
+$muted: #667085;
+$bg: linear-gradient(180deg, #fbfff7 0%, #f4f9ef 100%);
+$border: rgba(124, 198, 82, 0.16);
+
+/* =========================
+   WRAPPER
+========================= */
+.wrapper {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    padding-top: 56px;
+    background:
+        radial-gradient(circle at top left, rgba(225, 240, 196, 0.65), transparent 34%),
+        linear-gradient(180deg, #fbfff7 0%, #f4f9ef 100%);
+    border-top: 1px solid rgba(124, 198, 82, 0.16);
+}
+
+/* =========================
+   GRID
+========================= */
+.inner {
+    width: min(1320px, 92%);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.2fr repeat(4, 1fr);
+    gap: clamp(28px, 3vw, 44px);
+    padding-bottom: 42px;
+}
+
+.boxItem {
+    min-width: 0;
+}
+
+/* =========================
+   BRAND
+========================= */
+.brand {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.logo {
+    width: 250px;
+    height: 76px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(124, 198, 82, 0.15));
+}
+
+.desc {
+    margin: 0;
+    color: $muted;
+    font-size: 14.5px;
+    line-height: 1.8;
+    max-width: 300px;
+}
+
+/* =========================
+   TITLE
+========================= */
+.itemTitle {
+    position: relative;
+    display: inline-block;
+    margin: 0 0 18px;
+    padding-bottom: 10px;
+    color: $text;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: -0.2px;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 42px;
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, $primary, #d8efc8);
+    }
+}
+
+/* =========================
+   LIST
+========================= */
+.list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* =========================
+   ROW
+========================= */
+.row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: $muted;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.icon {
+    width: 18px;
+    flex: 0 0 18px;
+    margin-top: 2px;
+    color: $primary-dark;
+}
+
+/* =========================
+   LINK
+========================= */
+.link {
+    position: relative;
+    width: fit-content;
+    font-size: 14px;
+    color: $muted;
+    cursor: pointer;
+    transition:
+        color 0.25s ease,
+        transform 0.25s ease;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -3px;
+        width: 0;
+        height: 2px;
+        border-radius: 999px;
+        background: $primary;
+        transition: width 0.25s ease;
+    }
+
+    &:hover {
+        color: $primary-dark;
+        transform: translateX(4px);
+
+        &::after {
+            width: 100%;
+        }
+    }
+}
+
+/* =========================
+   SOCIAL
+========================= */
+.social {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.socialBtn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(124, 198, 82, 0.18);
+    background: rgba(255, 255, 255, 0.78);
+    color: $primary-dark;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.04);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease;
+
+    &:hover {
+        transform: translateY(-4px);
+        background: linear-gradient(135deg, $primary, $primary-dark);
+        color: #fff;
+        box-shadow: 0 16px 30px rgba(124, 198, 82, 0.22);
+    }
+}
+
+/* =========================
+   BOTTOM
+========================= */
+.footerBottom {
+    position: relative;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, #0b6b5a, #0f513f);
+    padding: 18px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 26%);
+        pointer-events: none;
+    }
+}
+
+.copyright {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* =========================
+   PAYMENT
+========================= */
+.payment {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pay {
+    padding: 7px 13px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    backdrop-filter: blur(8px);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 1200px) {
+    .inner {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .wrapper {
+        padding-top: 48px;
+    }
+
+    .inner {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 32px;
+    }
+
+    .logo {
+        width: 220px;
+    }
+
+    .footerBottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 520px) {
+    .wrapper {
+        padding-top: 40px;
+    }
+
+    .inner {
+        grid-template-columns: 1fr;
+        gap: 28px;
+    }
+
+    .logo {
+        width: 200px;
+    }
+
+    .itemTitle {
+        font-size: 16px;
+    }
+
+    .desc,
+    .row,
+    .link {
+        font-size: 14px;
+    }
+
+    .footerBottom {
+        padding: 16px;
+    }
+
+    .payment {
+        gap: 8px;
+    }
+
+    .pay {
+        font-size: 11px;
+        padding: 6px 11px;
+    }
+}

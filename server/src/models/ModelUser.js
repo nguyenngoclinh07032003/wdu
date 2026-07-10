@@ -1,56 +1,53 @@
-const express = require('express');
-const router = express.Router();
+const mongoose = require('mongoose');
+const { create } = require('./ModelRegisterOTP');
 
-const ControllerUser = require('../controllers/ControllerUsers');
-const ControllerJWT = require('../jwt/ControllerJWT');
+const Schema = mongoose.Schema;
 
-const path = require('path');
-const multer = require('multer');
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.resolve(__dirname, '../uploads'));
+const ModelUser = new Schema({
+    fullname: {
+        type: String,
+        required: true,
     },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+
+    password: {
+        type: String,
+        required: function () {
+            return !this.isGoogleAccount;
+        },
     },
+
+    phone: {
+        type: Number,
+        required: function () {
+            return !this.isGoogleAccount;
+        },
+        unique: true,
+        sparse: true,
+    },
+
+    isGoogleAccount: {
+        type: Boolean,
+        default: false,
+    },
+    email: { type: String, required: true, lowercase: true, unique: true },
+    isAdmin: { type: Boolean, default: false },
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'shipper'],
+        default: 'user',
+    },
+    isActive: { type: Boolean, default: true },
+    sex: { type: String, enum: ['male', 'female', 'other'], default: 'other' },
+    brirthday: { type: Date, default: null },
+    avatar: { type: String, default: '' },
+    surplus: { type: Number, default: 0 },
+    // for password reset OTP
+    resetOtp: { type: String, default: '' },
+    resetOtpExpiry: { type: Date, default: null },
+
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    lastLoginAt: { type: Date, default: null },
 });
 
-const upload = multer({ storage: storage });
-
-router.post('/api/register', ControllerUser.Register);
-router.post('/api/login', ControllerUser.Login);
-router.post('/api/google-login', ControllerUser.GoogleLogin);
-
-router.get('/api/auth', ControllerJWT.verifyToken, ControllerUser.GetUser);
-
-router.put(
-    '/api/auth/update-profile',
-    ControllerJWT.verifyToken,
-    upload.single('avatar'),
-    ControllerUser.UpdateProfile,
-);
-
-router.get('/api/me', ControllerJWT.verifyToken, async (req, res) => {
-    return res.status(200).json({
-        success: true,
-        user: req.user,
-    });
-});
-router.post('/api/logout', ControllerJWT.verifyToken, ControllerUser.Logout);
-
-router.get('/api/getallorder', ControllerJWT.verifyTokenAdmin, ControllerUser.GetOrder);
-router.get('/api/getalluser', ControllerJWT.verifyTokenAdmin, ControllerUser.getAllUser);
-router.delete('/api/deleteuser', ControllerJWT.verifyTokenAdmin, ControllerUser.DeleteUser);
-
-router.post('/api/forgotpassword', ControllerUser.ForgotPassword);
-router.post('/api/resetpassword', ControllerUser.ResetPassword);
-router.get('/api/refresh-token', ControllerUser.RefreshToken);
-
-router.put('/api/update-status-user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.UpdateStatusUser);
-router.put('/api/update-user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.UpdateUser);
-router.get('/api/user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.GetUserById);
-
-router.get('/api/get-all-shipper', ControllerJWT.verifyTokenAdmin, ControllerUser.GetAllShipper);
-router.put('/api/assign-order-shipper/:orderId', ControllerJWT.verifyTokenAdmin, ControllerUser.AssignOrderToShipper);
-module.exports = router;
+module.exports = mongoose.model('user', ModelUser);
