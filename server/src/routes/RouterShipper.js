@@ -4,12 +4,13 @@ const router = express.Router();
 const ControllerShipper = require('../controllers/ControllerShipper');
 const ControllerJWT = require('../jwt/ControllerJWT');
 
-router.get('/api/shipper/orders', ControllerJWT.verifyToken, ControllerShipper.getMyOrders);
-router.get('/api/shipper/history', ControllerJWT.verifyToken, ControllerShipper.getHistory);
-router.get('/api/shipper/stats', ControllerJWT.verifyToken, ControllerShipper.getStats);
+const authShipperRequest = ControllerJWT.verifyToken;
 
-router.patch('/api/shipper/orders/:orderId/start', ControllerJWT.verifyToken, ControllerShipper.startDelivery);
+router.get('/api/shipper/orders', authShipperRequest, ControllerShipper.getMyOrders);
+router.get('/api/shipper/history', authShipperRequest, ControllerShipper.getHistory);
+router.get('/api/shipper/stats', authShipperRequest, ControllerShipper.getStats);
 
-router.patch('/api/shipper/orders/:orderId/status', ControllerJWT.verifyToken, ControllerShipper.updateDeliveryStatus);
+router.patch('/api/shipper/orders/:orderId/start', authShipperRequest, ControllerShipper.startDelivery);
+router.patch('/api/shipper/orders/:orderId/status', authShipperRequest, ControllerShipper.updateDeliveryStatus);
 
 module.exports = router;

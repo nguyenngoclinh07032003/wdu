@@ -25,11 +25,11 @@ export const SHIPPER_STATUS = {
     },
 };
 
+const UNKNOWN_SHIPPER_STATUS = {
+    label: 'Không xác định',
+    className: 'unknown',
+};
+
 export const getShipperStatus = (status) => {
-    return (
-        SHIPPER_STATUS[status] || {
-            label: 'Không xác định',
-            className: 'unknown',
-        }
-    );
+    return SHIPPER_STATUS[status] || UNKNOWN_SHIPPER_STATUS;
 };

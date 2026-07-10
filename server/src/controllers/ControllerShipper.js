@@ -1,60 +1,78 @@
 const ModelPayment = require('../models/ModelPayment');
 
+const USER_POPULATE_FIELDS = 'fullname email phone';
+const ACTIVE_ORDER_STATUSES = ['confirmed', 'shipping', 'failed', 'returning'];
+const HISTORY_ORDER_STATUSES = ['completed', 'returned'];
+const WAITING_ORDER_STATUSES = ['confirmed', 'shipping'];
+const SHIPPER_EDITABLE_STATUSES = ['completed', 'failed', 'returning'];
+const STATUS_FLOW = {
+    shipping: ['completed', 'failed'],
+    failed: ['returning'],
+};
+const STATUS_TIMESTAMP_FIELD = {
+    completed: 'deliveredAt',
+    failed: 'failedAt',
+    returning: 'returningAt',
+};
+
+const buildDayRange = () => {
+    const start = new Date();
+    const end = new Date();
+
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+};
+
+const findOrdersByStatus = (shipperId, statuses, sortField) => {
+    return ModelPayment.find({
+        shipperId,
+        status: { $in: statuses },
+    })
+        .sort({ [sortField]: -1 })
+        .populate('userId', USER_POPULATE_FIELDS);
+};
+
+const sendServerError = (res, error, message = 'Lỗi server') => {
+    console.log(error);
+
+    return res.status(500).json({ message });
+};
+
 class ControllerShipper {
     async getMyOrders(req, res) {
         try {
-            const shipperId = req.user.id;
-
-            const orders = await ModelPayment.find({
-                shipperId,
-                status: { $in: ['confirmed', 'shipping', 'failed', 'returning'] },
-            })
-                .sort({ assignedAt: -1 })
-                .populate('userId', 'fullname email phone');
+            const orders = await findOrdersByStatus(req.user.id, ACTIVE_ORDER_STATUSES, 'assignedAt');
 
             return res.status(200).json({
                 message: 'Lấy đơn hàng shipper thành công',
                 data: orders,
             });
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message: 'Lỗi server',
-            });
+            return sendServerError(res, error);
         }
     }
 
     async getHistory(req, res) {
         try {
-            const shipperId = req.user.id;
-
-            const orders = await ModelPayment.find({
-                shipperId,
-                status: { $in: ['completed', 'returned'] },
-            })
-                .sort({ deliveredAt: -1 })
-                .populate('userId', 'fullname email phone');
+            const orders = await findOrdersByStatus(req.user.id, HISTORY_ORDER_STATUSES, 'deliveredAt');
 
             return res.status(200).json({
                 message: 'Lấy lịch sử giao hàng thành công',
                 data: orders,
             });
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message: 'Lỗi server',
-            });
+            return sendServerError(res, error);
         }
     }
 
     async startDelivery(req, res) {
         try {
-            const shipperId = req.user.id;
             const { orderId } = req.params;
-
             const order = await ModelPayment.findOne({
                 _id: orderId,
-                shipperId,
+                shipperId: req.user.id,
                 status: 'confirmed',
             });
 
@@ -72,10 +90,7 @@ class ControllerShipper {
                 data: order,
             });
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message: 'Lỗi server',
-            });
+            return sendServerError(res, error);
         }
     }
 
@@ -84,9 +99,7 @@ class ControllerShipper {
             const { orderId } = req.params;
             const { status, deliveryNote } = req.body;
 
-            const allowStatus = ['completed', 'failed', 'returning'];
-
-            if (!allowStatus.includes(status)) {
+            if (!SHIPPER_EDITABLE_STATUSES.includes(status)) {
                 return res.status(400).json({
                     message: 'Shipper không được cập nhật trạng thái này',
                 });
@@ -103,12 +116,7 @@ class ControllerShipper {
                 });
             }
 
-            const validFlow = {
-                shipping: ['completed', 'failed'],
-                failed: ['returning'],
-            };
-
-            if (!validFlow[order.status]?.includes(status)) {
+            if (!STATUS_FLOW[order.status]?.includes(status)) {
                 return res.status(400).json({
                     message: `Không thể chuyển từ ${order.status} sang ${status}`,
                 });
@@ -117,16 +125,9 @@ class ControllerShipper {
             order.status = status;
             order.deliveryNote = deliveryNote || '';
 
-            if (status === 'completed') {
-                order.deliveredAt = new Date();
-            }
-
-            if (status === 'failed') {
-                order.failedAt = new Date();
-            }
-
-            if (status === 'returning') {
-                order.returningAt = new Date();
+            const timestampField = STATUS_TIMESTAMP_FIELD[status];
+            if (timestampField) {
+                order[timestampField] = new Date();
             }
 
             await order.save();
@@ -136,57 +137,41 @@ class ControllerShipper {
                 data: order,
             });
         } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message: 'Lỗi cập nhật trạng thái giao hàng',
-            });
+            return sendServerError(res, error, 'Lỗi cập nhật trạng thái giao hàng');
         }
     }
 
     async getStats(req, res) {
         try {
             const shipperId = req.user.id;
+            const { start, end } = buildDayRange();
 
-            const now = new Date();
+            const [totalReceived, waiting, completedToday, totalCompleted, totalFailed] = await Promise.all([
+                ModelPayment.countDocuments({ shipperId }),
+                ModelPayment.countDocuments({
+                    shipperId,
+                    status: { $in: WAITING_ORDER_STATUSES },
+                }),
+                ModelPayment.countDocuments({
+                    shipperId,
+                    status: 'completed',
+                    deliveredAt: {
+                        $gte: start,
+                        $lte: end,
+                    },
+                }),
+                ModelPayment.countDocuments({
+                    shipperId,
+                    status: 'completed',
+                }),
+                ModelPayment.countDocuments({
+                    shipperId,
+                    status: 'failed',
+                }),
+            ]);
 
-            const startToday = new Date(now);
-            startToday.setHours(0, 0, 0, 0);
-
-            const endToday = new Date(now);
-            endToday.setHours(23, 59, 59, 999);
-
-            const totalReceived = await ModelPayment.countDocuments({
-                shipperId,
-            });
-
-            const waiting = await ModelPayment.countDocuments({
-                shipperId,
-                status: { $in: ['confirmed', 'shipping'] },
-            });
-
-            const completedToday = await ModelPayment.countDocuments({
-                shipperId,
-                status: 'completed',
-                deliveredAt: {
-                    $gte: startToday,
-                    $lte: endToday,
-                },
-            });
-
-            const totalCompleted = await ModelPayment.countDocuments({
-                shipperId,
-                status: 'completed',
-            });
-
-            const totalFailed = await ModelPayment.countDocuments({
-                shipperId,
-                status: 'failed',
-            });
-
-            const successRate =
-                totalCompleted + totalFailed === 0
-                    ? 0
-                    : Math.round((totalCompleted / (totalCompleted + totalFailed)) * 100);
+            const finishedOrders = totalCompleted + totalFailed;
+            const successRate = finishedOrders === 0 ? 0 : Math.round((totalCompleted / finishedOrders) * 100);
 
             return res.status(200).json({
                 totalReceived,
@@ -195,11 +180,7 @@ class ControllerShipper {
                 successRate,
             });
         } catch (error) {
-            console.log(error);
-
-            return res.status(500).json({
-                message: 'Lỗi lấy thống kê shipper',
-            });
+            return sendServerError(res, error, 'Lỗi lấy thống kê shipper');
         }
     }
 }

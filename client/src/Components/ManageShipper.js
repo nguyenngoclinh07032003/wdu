@@ -18,6 +18,16 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const cx = classNames.bind(styles);
+const IN_PROGRESS_ORDER_STATUSES = ['pending', 'confirmed', 'shipping'];
+const ASSIGNABLE_ORDER_STATUS = 'confirmed';
+
+const normalizeStatus = (status) => {
+    return String(status || '').toLowerCase();
+};
+
+const hasAnyStatus = (item, statuses) => {
+    return statuses.includes(normalizeStatus(item?.status));
+};
 
 function ManageShipper() {
     const [shippers, setShippers] = useState([]);
@@ -61,17 +71,11 @@ function ManageShipper() {
     }, [shippers]);
 
     const pendingDeliveries = useMemo(() => {
-        return orders.filter((item) => {
-            const status = String(item?.status || '').toLowerCase();
-            return status === 'pending' || status === 'confirmed' || status === 'shipping';
-        }).length;
+        return orders.filter((item) => hasAnyStatus(item, IN_PROGRESS_ORDER_STATUSES)).length;
     }, [orders]);
 
     const completedOrders = useMemo(() => {
-        return orders.filter((item) => {
-            const status = String(item?.status || '').toLowerCase();
-            return status === 'completed' || item?.tinhtrang === true;
-        }).length;
+        return orders.filter((item) => normalizeStatus(item?.status) === 'completed' || item?.tinhtrang === true).length;
     }, [orders]);
 
     const successRate = useMemo(() => {
@@ -81,10 +85,7 @@ function ManageShipper() {
 
     const urgentOrders = useMemo(() => {
         return orders
-            .filter((item) => {
-                const status = String(item?.status || '').toLowerCase();
-                return status === 'pending' || status === 'confirmed' || status === 'shipping';
-            })
+            .filter((item) => hasAnyStatus(item, IN_PROGRESS_ORDER_STATUSES))
             .slice(0, 3);
     }, [orders]);
 
@@ -169,9 +170,7 @@ function ManageShipper() {
     };
     const availableOrders = useMemo(() => {
         return orders.filter((item) => {
-            const status = String(item?.status || '').toLowerCase();
-
-            return !item?.shipperId && status === 'confirmed';
+            return !item?.shipperId && normalizeStatus(item?.status) === ASSIGNABLE_ORDER_STATUS;
         });
     }, [orders]);
 
@@ -248,11 +247,9 @@ function ManageShipper() {
                                     type="button"
                                     className={cx('toolBtn')}
                                     onClick={() => {
-                                        const confirmedOrders = orders.filter((item) => {
-                                            const status = String(item?.status || '').toLowerCase();
-
-                                            return status === 'confirmed';
-                                        });
+                                        const confirmedOrders = orders.filter(
+                                            (item) => normalizeStatus(item?.status) === ASSIGNABLE_ORDER_STATUS,
+                                        );
 
                                         toast.info(`Có ${confirmedOrders.length} đơn đã xác nhận`);
                                     }}

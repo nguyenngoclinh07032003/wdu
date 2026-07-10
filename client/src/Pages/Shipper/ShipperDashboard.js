@@ -30,6 +30,23 @@ import {
 } from 'react-icons/fa';
 
 const cx = classNames.bind(styles);
+const DELIVERY_NOTES = {
+    completed: 'Khách đã nhận hàng',
+    failed: 'Giao hàng thất bại',
+    returning: 'Khách không nhận, đang hoàn hàng về shop',
+};
+
+const readCustomerName = (order) => {
+    return order?.userId?.fullname || order?.fullname || order?.customer || 'Khách hàng';
+};
+
+const readCustomerPhone = (order) => {
+    return order?.userId?.phone || order?.phone || '';
+};
+
+const readDeliveryAddress = (order) => {
+    return order?.address || order?.deliveryAddress || order?.addressUser || 'Chưa có địa chỉ giao hàng';
+};
 
 function ShipperDashboard() {
     const [orders, setOrders] = useState([]);
@@ -121,16 +138,10 @@ function ShipperDashboard() {
     };
 
     const handleUpdateStatus = async (orderId, status) => {
-        const noteMap = {
-            completed: 'Khách đã nhận hàng',
-            failed: 'Giao hàng thất bại',
-            returning: 'Khách không nhận, đang hoàn hàng về shop',
-        };
-
         try {
             await updateDeliveryStatus(orderId, {
                 status,
-                deliveryNote: noteMap[status] || '',
+                deliveryNote: DELIVERY_NOTES[status] || '',
             });
 
             toast.success('Cập nhật trạng thái thành công');
@@ -146,15 +157,15 @@ function ShipperDashboard() {
     };
 
     const getCustomerName = (order) => {
-        return order?.userId?.fullname || order?.fullname || order?.customer || 'Khách hàng';
+        return readCustomerName(order);
     };
 
     const getCustomerPhone = (order) => {
-        return order?.userId?.phone || order?.phone || '';
+        return readCustomerPhone(order);
     };
 
     const getAddress = (order) => {
-        return order?.address || order?.deliveryAddress || order?.addressUser || 'Chưa có địa chỉ giao hàng';
+        return readDeliveryAddress(order);
     };
 
     const openMap = (address) => {
