@@ -10,6 +10,15 @@ import {
     deleteAddress,
     setDefaultAddress,
 } from '../../services/addressService';
+import {
+    getAccuratePosition,
+    reverseGeocodeCoordinates,
+    findMatchingProvince,
+    findMatchingWard,
+    getGeolocationErrorMessage,
+    fetchPublicNetworkInfo,
+    buildGeoResultFromIp,
+} from '../../utils/locationHelpers';
 
 const cx = classNames.bind(styles);
 
@@ -22,6 +31,9 @@ function AddressBook() {
     const [xa, setXa] = useState([]);
 
     const [editingId, setEditingId] = useState(null);
+    const [locating, setLocating] = useState(false);
+    const [locationLockedFromGps, setLocationLockedFromGps] = useState(false);
+    const [locationAccuracy, setLocationAccuracy] = useState(null);
 
     const [formData, setFormData] = useState({
         fullname: '',
@@ -40,7 +52,7 @@ function AddressBook() {
     // ================= MAP =================
     const mapPreviewSrc = useMemo(() => {
         if (formData.lat && formData.lng) {
-            return `https://www.google.com/maps?q=${formData.lat},${formData.lng}&hl=vi&z=17&output=embed`;
+            return `https://www.google.com/maps?q=${formData.lat},${formData.lng}&hl=vi&z=18&output=embed`;
         }
 
         if (formData.mapAddress) {
@@ -67,6 +79,8 @@ function AddressBook() {
 
     // ================= AUTO BUILD MAP =================
     useEffect(() => {
+        if (locationLockedFromGps) return;
+
         if (!formData.provinceName || !formData.wardName) {
             setFormData((prev) => ({
                 ...prev,
@@ -85,7 +99,7 @@ function AddressBook() {
             lng: null,
             mapAddress: addressText,
         }));
-    }, [formData.detail, formData.provinceName, formData.wardName]);
+    }, [formData.detail, formData.provinceName, formData.wardName, locationLockedFromGps]);
 
     // ================= API =================
     const fetchAddresses = async () => {
@@ -123,13 +137,17 @@ function AddressBook() {
             const res = await axios.get(`https://esgoo.net/api-tinhthanh-new/2/${provinceId}.htm`);
 
             if (res.data?.error === 0) {
-                setXa(res.data.data || []);
-            } else {
-                setXa([]);
+                const wards = res.data.data || [];
+                setXa(wards);
+                return wards;
             }
+
+            setXa([]);
+            return [];
         } catch (error) {
             console.log('fetchWardsByProvince error:', error);
             setXa([]);
+            return [];
         }
     };
 
@@ -151,6 +169,8 @@ function AddressBook() {
 
         setEditingId(null);
         setXa([]);
+        setLocationLockedFromGps(false);
+        setLocationAccuracy(null);
     };
 
     const handleChangeInput = (e) => {
@@ -178,6 +198,8 @@ function AddressBook() {
             mapAddress: '',
         }));
 
+        setLocationLockedFromGps(false);
+        setLocationAccuracy(null);
         setXa([]);
     };
 
@@ -193,57 +215,117 @@ function AddressBook() {
             lat: null,
             lng: null,
         }));
+
+        setLocationLockedFromGps(false);
+        setLocationAccuracy(null);
     };
 
-    // láy vị trí hiện tại từ trình duyệt và tự động điền vào form
-    const handleGetCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            alert('Trình duyệt không hỗ trợ định vị');
-            return;
+    const applyGeoToForm = async (latitude, longitude, geoResult, { source, accuracy = null }) => {
+        let nextProvinceId = formData.provinceId;
+        let nextProvinceName = formData.provinceName;
+        let nextWardId = formData.wardId;
+        let nextWardName = formData.wardName;
+        let nextDetail = formData.detail;
+
+        const matchedProvince = findMatchingProvince(tinhThanh, geoResult);
+
+        if (matchedProvince) {
+            nextProvinceId = String(matchedProvince.id);
+            nextProvinceName = matchedProvince.full_name || '';
+
+            const wards = await fetchWardsByProvince(nextProvinceId);
+            const matchedWard = findMatchingWard(wards, geoResult);
+
+            if (matchedWard) {
+                nextWardId = String(matchedWard.id);
+                nextWardName = matchedWard.full_name || '';
+            } else {
+                nextWardId = '';
+                nextWardName = '';
+            }
         }
 
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
+        if (geoResult.detail) {
+            nextDetail = geoResult.detail;
+        }
 
-                setFormData((prev) => ({
-                    ...prev,
-                    lat: latitude,
-                    lng: longitude,
-                    mapAddress: `${latitude},${longitude}`,
-                }));
+        setLocationLockedFromGps(source === 'gps');
+        setLocationAccuracy(accuracy);
+        setFormData((prev) => ({
+            ...prev,
+            lat: latitude,
+            lng: longitude,
+            mapAddress: geoResult.displayName || `${latitude},${longitude}`,
+            provinceId: nextProvinceId,
+            provinceName: nextProvinceName,
+            wardId: nextWardId,
+            wardName: nextWardName,
+            detail: nextDetail,
+        }));
+    };
 
-                alert('Lấy vị trí thành công');
-            },
+    const handleGetCurrentLocation = async () => {
+        if (locating) return;
 
-            (error) => {
-                console.log('GPS ERROR:', error);
+        try {
+            setLocating(true);
 
-                switch (error.code) {
-                    case error.PERMISSION_DENIED:
-                        alert('Bạn đã từ chối quyền vị trí. Hãy cho phép Location trên trình duyệt.');
-                        break;
+            const latestNetworkInfo = await fetchPublicNetworkInfo();
 
-                    case error.POSITION_UNAVAILABLE:
-                        alert('Không thể xác định vị trí hiện tại.');
-                        break;
+            let latitude = null;
+            let longitude = null;
+            let accuracy = null;
+            let geoResult = null;
+            let source = 'ip';
 
-                    case error.TIMEOUT:
-                        alert('Lấy vị trí quá lâu. Hãy thử lại.');
-                        break;
+            try {
+                const position = await getAccuratePosition({
+                    maxWaitMs: 25000,
+                    targetAccuracyMeters: 20,
+                });
 
-                    default:
-                        alert('Không thể lấy vị trí hiện tại');
-                        break;
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+                accuracy = position.coords.accuracy;
+                geoResult = await reverseGeocodeCoordinates(latitude, longitude);
+                source = 'gps';
+            } catch (gpsError) {
+                console.log('GPS fallback to IP:', gpsError);
+
+                if (latestNetworkInfo.lat && latestNetworkInfo.lng) {
+                    latitude = latestNetworkInfo.lat;
+                    longitude = latestNetworkInfo.lng;
+                    geoResult = buildGeoResultFromIp(latestNetworkInfo);
+
+                    const reverseResult = await reverseGeocodeCoordinates(latitude, longitude);
+                    geoResult = {
+                        ...geoResult,
+                        displayName: reverseResult.displayName || geoResult.displayName,
+                        detail: reverseResult.detail || geoResult.detail,
+                        provinceCandidates: reverseResult.provinceCandidates,
+                        wardCandidates: reverseResult.wardCandidates,
+                    };
+                    source = 'ip';
+                } else {
+                    throw gpsError;
                 }
-            },
+            }
 
-            {
-                enableHighAccuracy: true,
-                timeout: 20000,
-                maximumAge: 0,
-            },
-        );
+            await applyGeoToForm(latitude, longitude, geoResult, { source, accuracy });
+
+            if (source === 'gps') {
+                const accuracyText =
+                    accuracy && Number.isFinite(accuracy) ? ` (sai số ±${Math.round(accuracy)}m)` : '';
+                alert(`Lấy vị trí thành công${accuracyText}`);
+            } else {
+                alert('Đã lấy vị trí theo IP (ước lượng khu vực)');
+            }
+        } catch (error) {
+            console.log('LOCATION ERROR:', error);
+            alert(getGeolocationErrorMessage(error));
+        } finally {
+            setLocating(false);
+        }
     };
 
     // lấy dữ liệu từ form và gọi API tạo mới hoặc cập nhật địa chỉ
@@ -343,6 +425,9 @@ function AddressBook() {
             mapAddress:
                 item.mapAddress || [item.detail, item.ward, item.province, 'Việt Nam'].filter(Boolean).join(', '),
         });
+
+        setLocationLockedFromGps(!!(item.lat && item.lng));
+        setLocationAccuracy(null);
 
         window.scrollTo({
             top: 0,
@@ -471,8 +556,13 @@ function AddressBook() {
                     <label>Google Map</label>
 
                     <div className={cx('mapActions')}>
-                        <button type="button" className={cx('mapBtn')} onClick={handleGetCurrentLocation}>
-                            Lấy vị trí hiện tại
+                        <button
+                            type="button"
+                            className={cx('mapBtn')}
+                            onClick={handleGetCurrentLocation}
+                            disabled={locating}
+                        >
+                            {locating ? 'Đang định vị...' : 'Lấy vị trí hiện tại'}
                         </button>
                     </div>
 
@@ -490,12 +580,18 @@ function AddressBook() {
 
                             <p>
                                 {formData.lat && formData.lng
-                                    ? `Tọa độ: ${formData.lat}, ${formData.lng}`
+                                    ? `Tọa độ: ${Number(formData.lat).toFixed(6)}, ${Number(formData.lng).toFixed(6)}${
+                                          locationAccuracy
+                                              ? ` • Sai số ±${Math.round(locationAccuracy)}m`
+                                              : ''
+                                      }`
                                     : `Địa chỉ map: ${formData.mapAddress}`}
                             </p>
                         </div>
                     ) : (
-                        <p className={cx('mapHint')}>Chọn địa chỉ để tự động hiển thị map</p>
+                        <p className={cx('mapHint')}>
+                            Bấm &quot;Lấy vị trí hiện tại&quot; hoặc chọn địa chỉ để hiển thị bản đồ
+                        </p>
                     )}
                 </div>
 

@@ -152,6 +152,9 @@ function route(app) {
     app.delete('/api/addresses/:id', AddressRoute);
     app.patch('/api/addresses/:id/default', AddressRoute);
 
+    // Client network info
+    app.use('/api', require('./RouteNetwork'));
+
     // Dashboard
     app.use('/api/admin', DashboardRoute);
 
