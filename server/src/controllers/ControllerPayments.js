@@ -4,8 +4,10 @@ const ModelCart = require('../models/ModelCart');
 const ModelPayment = require('../models/ModelPayment');
 const ModelUser = require('../models/ModelUser');
 const ModelProducts = require('../models/ModelProducts');
+const ModelVoucher = require('../models/ModelVoucher');
 const sendMailOrder = require('../SendMail/SendMailOrder');
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
+const { getVoucherAvailabilityError, consumeVoucher, releaseVoucher } = require('../utils/voucherHelpers');
 
 require('dotenv').config();
 
@@ -184,6 +186,37 @@ class ControllerPayments {
                 console.error('sendMailOrder error:', error);
             });
     };
+
+    validateCartVoucherBeforeCheckout = async (cart) => {
+        const code = cart?.voucher?.code;
+        if (!code) return null;
+
+        const voucher = await ModelVoucher.findOne({ code: String(code).trim().toUpperCase() });
+        return getVoucherAvailabilityError(voucher, { orderTotal: cart.sumprice });
+    };
+
+    finalizeOrderVoucher = async (cart, payment) => {
+        const code = cart?.voucher?.code;
+        if (!code) return { ok: true };
+
+        try {
+            await consumeVoucher(code);
+            payment.voucherConsumed = true;
+            return { ok: true };
+        } catch (error) {
+            return {
+                ok: false,
+                message: error.message || 'Voucher không còn khả dụng',
+            };
+        }
+    };
+
+    releaseOrderVoucher = async (order) => {
+        if (!order?.voucherConsumed || !order?.voucher?.code) return;
+
+        await releaseVoucher(order.voucher.code);
+        order.voucherConsumed = false;
+    };
     //------------------------------MOMO------------------------------
 
     PaymentsMomo = async (req, res) => {
@@ -210,6 +243,11 @@ class ControllerPayments {
             }
 
             await this.updateCartShippingInfo(cart, shippingInfo);
+
+            const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
+            if (voucherError) {
+                return res.status(400).json({ message: voucherError });
+            }
 
             const amounts = this.calculateCartAmounts(cart);
 
@@ -306,6 +344,11 @@ class ControllerPayments {
 
             await this.updateCartShippingInfo(cart, shippingInfo);
 
+            const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
+            if (voucherError) {
+                return res.status(400).json({ message: voucherError });
+            }
+
             const amounts = this.calculateCartAmounts(cart);
 
             const vnpay = new VNPay({
@@ -365,6 +408,11 @@ class ControllerPayments {
                 return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments`);
             }
 
+            const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
+            if (voucherError) {
+                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`);
+            }
+
             const userData = await ModelUser.findOne({ email: cart.user }).lean();
 
             const newPayment = this.buildPaymentFromCart({
@@ -382,6 +430,11 @@ class ControllerPayments {
                 gatewayTxnRef: vnp_TxnRef,
                 gatewayOrderId: String(cartId),
             });
+
+            const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
+            if (!voucherResult.ok) {
+                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`);
+            }
 
             await newPayment.save();
             await cart.deleteOne();
@@ -450,6 +503,11 @@ class ControllerPayments {
                 return res.status(404).json({ message: 'Cart is empty or not found' });
             }
 
+            const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
+            if (voucherError) {
+                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`);
+            }
+
             let parsedExtraData = {};
             if (extraData) {
                 try {
@@ -474,6 +532,11 @@ class ControllerPayments {
                 gatewayOrderId: orderId,
                 gatewayTxnRef: requestId,
             });
+
+            const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
+            if (!voucherResult.ok) {
+                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`);
+            }
 
             await newPayment.save();
             await ModelCart.deleteOne({ user: email });
@@ -538,6 +601,11 @@ class ControllerPayments {
 
             await this.updateCartShippingInfo(cart, shippingInfo);
 
+            const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
+            if (voucherError) {
+                return res.status(400).json({ message: voucherError });
+            }
+
             const userData = await ModelUser.findOne({ email: user.email }).lean();
 
             const newPayment = this.buildPaymentFromCart({
@@ -554,6 +622,11 @@ class ControllerPayments {
                 status: 'pending',
                 gatewayOrderId: `COD_${Date.now()}`,
             });
+
+            const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
+            if (!voucherResult.ok) {
+                return res.status(400).json({ message: voucherResult.message });
+            }
 
             await newPayment.save();
             await ModelCart.deleteOne({ user: user.email });
@@ -667,6 +740,7 @@ class ControllerPayments {
             order.cancelledAt = new Date();
             order.updatedAt = new Date();
 
+            await this.releaseOrderVoucher(order);
             await order.save();
 
             return res.status(200).json({
@@ -713,6 +787,8 @@ class ControllerPayments {
 
             order.status = 'cancelled';
             order.updatedAt = new Date();
+
+            await this.releaseOrderVoucher(order);
             await order.save();
 
             return res.status(200).json({

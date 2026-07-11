@@ -44,6 +44,8 @@ const modelPayment = new Schema({
         discountAmount: { type: Number, default: 0 },
     },
 
+    voucherConsumed: { type: Boolean, default: false },
+
     paymentMethod: {
         type: String,
         enum: ['COD', 'MOMO', 'VNPAY'],

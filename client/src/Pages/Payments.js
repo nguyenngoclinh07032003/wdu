@@ -40,8 +40,6 @@ function Payments() {
     const voucher = cartInfo?.voucher || null;
     const hasVoucher = !!voucher?.code;
 
-    const [hasDefaultAddress, setHasDefaultAddress] = useState(false);
-
     const totalProduct = useMemo(() => {
         const total = dataCart.map((item) => item.sumprice);
         return total[0] || 0;
@@ -109,11 +107,9 @@ function Payments() {
                 const defaultAddress = safeList.find((item) => item.isDefault);
 
                 if (defaultAddress) {
-                    setHasDefaultAddress(true);
                     setSelectedAddressId(defaultAddress._id || defaultAddress.id);
                     applyAddressToForm(defaultAddress);
                 } else {
-                    setHasDefaultAddress(false);
                     setSelectedAddressId('');
                     setName('');
                     setPhone('');
@@ -122,7 +118,6 @@ function Payments() {
             } catch (error) {
                 console.log('fetchSavedAddresses error:', error);
                 setAddresses([]);
-                setHasDefaultAddress(false);
             }
         };
 
@@ -137,7 +132,6 @@ function Payments() {
 
         if (selected) {
             applyAddressToForm(selected);
-            setHasDefaultAddress(!!selected.isDefault);
         }
     };
 
@@ -167,28 +161,18 @@ function Payments() {
     };
 
     const validateForm = () => {
-        if (!hasDefaultAddress) {
-            toast.error('Vui lòng thêm hoặc chọn địa chỉ mặc định trước khi thanh toán');
-            return false;
-        }
-
-        if (!selectedAddressId) {
-            toast.error('Vui lòng chọn địa chỉ giao hàng');
-            return false;
-        }
-
         if (!name.trim()) {
-            toast.error('Vui lòng chọn hoặc nhập họ tên người nhận');
+            toast.error('Vui lòng nhập họ tên người nhận');
             return false;
         }
 
         if (!phone.trim()) {
-            toast.error('Vui lòng chọn hoặc nhập số điện thoại');
+            toast.error('Vui lòng nhập số điện thoại');
             return false;
         }
 
         if (!address.trim()) {
-            toast.error('Vui lòng chọn hoặc nhập địa chỉ giao hàng');
+            toast.error('Vui lòng nhập địa chỉ giao hàng');
             return false;
         }
 
@@ -326,7 +310,7 @@ function Payments() {
 
                         {addresses.length > 0 && (
                             <div className={cx('savedAddressBox')}>
-                                <label>Chọn địa chỉ từ sổ địa chỉ</label>
+                                <label>Chọn địa chỉ từ sổ địa chỉ (không bắt buộc)</label>
 
                                 <select value={selectedAddressId} onChange={handleChangeSavedAddress}>
                                     <option value="">Chọn địa chỉ giao hàng</option>

@@ -82,15 +82,22 @@ function ManageVoucher() {
     };
 
     const getVoucherStatus = (voucher) => {
-        const now = new Date();
-        const end = new Date(voucher.expiredAt);
+        const expiryEnd = new Date(voucher.expiredAt);
+        expiryEnd.setHours(23, 59, 59, 999);
 
-        if (now > end) return 'expired';
+        if (new Date() > expiryEnd) return 'expired';
+
+        const quantity = Number(voucher.quantity || 0);
+        const used = Number(voucher.used || 0);
+
+        if (quantity !== 0 && used >= quantity) return 'depleted';
 
         if (!voucher.isActive) return 'inactive';
 
         return 'active';
     };
+
+    const isVoucherOutOfStock = (voucher) => getVoucherStatus(voucher) === 'depleted';
 
     const filteredVouchers = useMemo(() => {
         return vouchers.filter((voucher) => {
@@ -208,15 +215,27 @@ function ManageVoucher() {
     };
 
     const handleToggleActive = async (voucher) => {
+        const status = getVoucherStatus(voucher);
+
+        if (status === 'expired' && !voucher.isActive) {
+            toast.warning('Voucher đã hết hạn, không thể bật lại');
+            return;
+        }
+
+        if (!voucher.isActive && isVoucherOutOfStock(voucher)) {
+            toast.warning('Voucher đã hết lượt, hãy tăng số lượng trước khi bật lại');
+            return;
+        }
+
         try {
             await request.put(`/api/admin/vouchers/${voucher._id}`, {
-                ...voucher,
                 isActive: !voucher.isActive,
             });
 
+            toast.success(voucher.isActive ? 'Đã tắt voucher' : 'Đã bật voucher');
             fetchVouchers();
         } catch (error) {
-            toast.error('Không thể đổi trạng thái');
+            toast.error(error?.response?.data?.message || 'Không thể đổi trạng thái');
         }
     };
 
@@ -342,20 +361,35 @@ function ManageVoucher() {
                                     </td>
 
                                     <td>
-                                        {voucher.used}/{voucher.quantity}
+                                        {voucher.used}/{voucher.quantity || '∞'}
                                     </td>
 
                                     <td>{new Date(voucher.expiredAt).toLocaleDateString('vi-VN')}</td>
 
                                     <td>
                                         <button
+                                            type="button"
                                             className={cx('switch', {
                                                 on: voucher.isActive,
+                                                disabled: getVoucherStatus(voucher) === 'expired',
                                             })}
                                             onClick={() => handleToggleActive(voucher)}
+                                            disabled={getVoucherStatus(voucher) === 'expired'}
+                                            title={
+                                                getVoucherStatus(voucher) === 'expired'
+                                                    ? 'Voucher đã hết hạn'
+                                                    : isVoucherOutOfStock(voucher) && !voucher.isActive
+                                                      ? 'Voucher đã hết lượt, tăng số lượng để bật lại'
+                                                      : voucher.isActive
+                                                        ? 'Tắt voucher'
+                                                        : 'Bật voucher'
+                                            }
                                         >
                                             <span />
                                         </button>
+                                        {isVoucherOutOfStock(voucher) && (
+                                            <small className={cx('statusHint')}>Hết lượt</small>
+                                        )}
                                     </td>
 
                                     <td>

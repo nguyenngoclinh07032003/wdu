@@ -1,8 +1,14 @@
 const modelCart = require('../models/ModelCart');
 const modelUser = require('../models/ModelUser');
 const ModelVoucher = require('../models/ModelVoucher');
-
-const SHIPPING_FEE = 30000;
+const {
+    SHIPPING_FEE,
+    getVoucherAvailabilityError,
+    calculateVoucherDiscount,
+    buildCartVoucherPayload,
+    isVoucherExpired,
+    isVoucherOutOfStock,
+} = require('../utils/voucherHelpers');
 
 // Hàm để tính toán và áp dụng voucher cho giỏ hàng
 const resetCartVoucher = (cart) => {
@@ -23,52 +29,16 @@ const validateCartVoucher = async (cart) => {
         code: cart.voucher.code,
     });
 
-    if (!voucher) {
+    const availabilityError = getVoucherAvailabilityError(voucher, { orderTotal: cart.sumprice });
+
+    if (availabilityError) {
         resetCartVoucher(cart);
         return;
     }
 
-    if (!voucher.isActive || new Date() > new Date(voucher.expiredAt)) {
-        resetCartVoucher(cart);
-        return;
-    }
+    const discountAmount = calculateVoucherDiscount(voucher, { orderTotal: cart.sumprice, shippingFee: SHIPPING_FEE });
 
-    if (voucher.quantity !== 0 && voucher.used >= voucher.quantity) {
-        resetCartVoucher(cart);
-        return;
-    }
-
-    if (cart.sumprice < voucher.minOrderValue) {
-        resetCartVoucher(cart);
-        return;
-    }
-
-    const baseAmount = voucher.category === 'shipping' ? SHIPPING_FEE : cart.sumprice;
-
-    let discountAmount = 0;
-
-    if (voucher.discountType === 'percent') {
-        discountAmount = (baseAmount * voucher.discountValue) / 100;
-
-        if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
-            discountAmount = voucher.maxDiscount;
-        }
-    } else {
-        discountAmount = voucher.discountValue;
-    }
-
-    if (discountAmount > baseAmount) {
-        discountAmount = baseAmount;
-    }
-
-    cart.voucher = {
-        code: voucher.code,
-        title: voucher.title,
-        category: voucher.category,
-        discountType: voucher.discountType,
-        discountValue: voucher.discountValue,
-        discountAmount,
-    };
+    cart.voucher = buildCartVoucherPayload(voucher, discountAmount);
 };
 class ControllerCart {
     async AddToCart(req, res) {
@@ -359,65 +329,27 @@ class ControllerCart {
                 code: String(code).trim().toUpperCase(),
             });
 
-            if (!voucher) {
-                return res.status(404).json({
-                    message: 'Voucher không tồn tại',
-                });
-            }
+            const availabilityError = getVoucherAvailabilityError(voucher, { orderTotal: cart.sumprice });
 
-            if (!voucher.isActive) {
-                return res.status(400).json({
-                    message: 'Voucher đã bị tắt',
-                });
-            }
-
-            if (new Date() > new Date(voucher.expiredAt)) {
-                voucher.isActive = false;
-                await voucher.save();
-
-                return res.status(400).json({
-                    message: 'Voucher đã hết hạn',
-                });
-            }
-
-            if (voucher.quantity !== 0 && voucher.used >= voucher.quantity) {
-                return res.status(400).json({
-                    message: 'Voucher đã hết lượt sử dụng',
-                });
-            }
-
-            if (cart.sumprice < voucher.minOrderValue) {
-                return res.status(400).json({
-                    message: `Đơn hàng tối thiểu ${voucher.minOrderValue.toLocaleString('vi-VN')}đ`,
-                });
-            }
-
-            const baseAmount = voucher.category === 'shipping' ? SHIPPING_FEE : cart.sumprice;
-
-            let discountAmount = 0;
-
-            if (voucher.discountType === 'percent') {
-                discountAmount = (baseAmount * voucher.discountValue) / 100;
-
-                if (voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
-                    discountAmount = voucher.maxDiscount;
+            if (availabilityError) {
+                if (voucher) {
+                    if (isVoucherExpired(voucher.expiredAt) || isVoucherOutOfStock(voucher)) {
+                        voucher.isActive = false;
+                        await voucher.save();
+                    }
                 }
-            } else {
-                discountAmount = voucher.discountValue;
+
+                return res.status(400).json({
+                    message: availabilityError,
+                });
             }
 
-            if (discountAmount > baseAmount) {
-                discountAmount = baseAmount;
-            }
+            const discountAmount = calculateVoucherDiscount(voucher, {
+                orderTotal: cart.sumprice,
+                shippingFee: SHIPPING_FEE,
+            });
 
-            cart.voucher = {
-                code: voucher.code,
-                title: voucher.title,
-                category: voucher.category,
-                discountType: voucher.discountType,
-                discountValue: voucher.discountValue,
-                discountAmount,
-            };
+            cart.voucher = buildCartVoucherPayload(voucher, discountAmount);
 
             await validateCartVoucher(cart);
             await cart.save();

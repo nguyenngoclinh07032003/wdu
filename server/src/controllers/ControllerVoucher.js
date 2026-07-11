@@ -1,26 +1,16 @@
 const ModelVoucher = require('../models/ModelVoucher');
 const ModelPayment = require('../models/ModelPayment');
-const autoDisableExpiredVouchers = async () => {
-    try {
-        await ModelVoucher.updateMany(
-            {
-                isActive: true,
-                expiredAt: { $lt: new Date() },
-            },
-            {
-                $set: {
-                    isActive: false,
-                },
-            },
-        );
-    } catch (error) {
-        console.log('AUTO EXPIRE VOUCHER ERROR:', error.message);
-    }
-};
+const {
+    isVoucherExpired,
+    isVoucherOutOfStock,
+    normalizeExpiredAt,
+    maintainVoucherStatuses,
+} = require('../utils/voucherHelpers');
+
 class ControllerVoucher {
     async getAll(req, res) {
         try {
-            await autoDisableExpiredVouchers();
+            await maintainVoucherStatuses();
 
             const now = new Date();
 
@@ -79,17 +69,18 @@ class ControllerVoucher {
 
     async getPublic(req, res) {
         try {
-            await autoDisableExpiredVouchers();
-
-            const now = new Date();
+            await maintainVoucherStatuses();
 
             const vouchers = await ModelVoucher.find({
                 isActive: true,
-                expiredAt: { $gte: now },
                 $or: [{ quantity: 0 }, { $expr: { $lt: ['$used', '$quantity'] } }],
-            }).sort({ createdAt: -1 });
+            })
+                .sort({ createdAt: -1 })
+                .lean();
 
-            return res.status(200).json(vouchers);
+            const activeVouchers = vouchers.filter((voucher) => !isVoucherExpired(voucher.expiredAt));
+
+            return res.status(200).json(activeVouchers);
         } catch (error) {
             return res.status(500).json({
                 message: 'Lỗi lấy voucher',
@@ -129,6 +120,15 @@ class ControllerVoucher {
                 });
             }
 
+            const quantity = Number(data.quantity || 0);
+            const used = Number(data.used || 0);
+
+            if (quantity !== 0 && used > quantity) {
+                return res.status(400).json({
+                    message: 'Lượt đã dùng không được lớn hơn số lượng voucher',
+                });
+            }
+
             const voucher = await ModelVoucher.create({
                 title: data.title,
                 code,
@@ -137,12 +137,17 @@ class ControllerVoucher {
                 discountValue: Number(data.discountValue),
                 minOrderValue: Number(data.minOrderValue || 0),
                 maxDiscount: Number(data.maxDiscount || 0),
-                quantity: Number(data.quantity || 0),
-                used: Number(data.used || 0),
-                expiredAt: data.expiredAt,
+                quantity,
+                used,
+                expiredAt: normalizeExpiredAt(data.expiredAt),
                 description: data.description || '',
                 isActive: data.isActive ?? true,
             });
+
+            if (isVoucherOutOfStock(voucher) || isVoucherExpired(voucher.expiredAt)) {
+                voucher.isActive = false;
+                await voucher.save();
+            }
 
             return res.status(201).json(voucher);
         } catch (error) {
@@ -155,7 +160,54 @@ class ControllerVoucher {
 
     async update(req, res) {
         try {
-            const data = { ...req.body };
+            const existingVoucher = await ModelVoucher.findById(req.params.id);
+
+            if (!existingVoucher) {
+                return res.status(404).json({
+                    message: 'Không tìm thấy voucher',
+                });
+            }
+
+            const allowedFields = [
+                'title',
+                'code',
+                'category',
+                'discountType',
+                'discountValue',
+                'minOrderValue',
+                'maxDiscount',
+                'quantity',
+                'expiredAt',
+                'description',
+                'isActive',
+            ];
+
+            const data = {};
+
+            allowedFields.forEach((field) => {
+                if (req.body[field] !== undefined) {
+                    data[field] = req.body[field];
+                }
+            });
+
+            const nextQuantity =
+                data.quantity !== undefined ? Number(data.quantity) : Number(existingVoucher.quantity || 0);
+            const nextUsed = Number(existingVoucher.used || 0);
+            const nextExpiredAt = data.expiredAt ? normalizeExpiredAt(data.expiredAt) : existingVoucher.expiredAt;
+
+            if (data.isActive === true) {
+                if (isVoucherExpired(nextExpiredAt)) {
+                    return res.status(400).json({
+                        message: 'Voucher đã hết hạn, không thể kích hoạt',
+                    });
+                }
+
+                if (nextQuantity !== 0 && nextUsed >= nextQuantity) {
+                    return res.status(400).json({
+                        message: 'Voucher đã hết lượt sử dụng, vui lòng tăng số lượng trước khi bật lại',
+                    });
+                }
+            }
 
             if (data.code) {
                 data.code = String(data.code).trim().toUpperCase();
@@ -178,10 +230,24 @@ class ControllerVoucher {
                 });
             }
 
-            if (data.quantity !== undefined && Number(data.quantity) < 0) {
-                return res.status(400).json({
-                    message: 'Số lượng voucher không hợp lệ',
-                });
+            if (data.quantity !== undefined) {
+                const newQuantity = Number(data.quantity);
+
+                if (newQuantity < 0) {
+                    return res.status(400).json({
+                        message: 'Số lượng voucher không hợp lệ',
+                    });
+                }
+
+                if (newQuantity !== 0 && newQuantity < nextUsed) {
+                    return res.status(400).json({
+                        message: `Số lượng không được nhỏ hơn lượt đã dùng (${nextUsed})`,
+                    });
+                }
+            }
+
+            if (data.expiredAt) {
+                data.expiredAt = normalizeExpiredAt(data.expiredAt);
             }
 
             const voucher = await ModelVoucher.findByIdAndUpdate(req.params.id, data, {
@@ -189,10 +255,9 @@ class ControllerVoucher {
                 runValidators: true,
             });
 
-            if (!voucher) {
-                return res.status(404).json({
-                    message: 'Không tìm thấy voucher',
-                });
+            if (voucher && (isVoucherOutOfStock(voucher) || isVoucherExpired(voucher.expiredAt))) {
+                voucher.isActive = false;
+                await voucher.save();
             }
 
             return res.status(200).json(voucher);

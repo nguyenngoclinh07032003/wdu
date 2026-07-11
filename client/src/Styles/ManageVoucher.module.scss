@@ -209,6 +209,19 @@
             transform: translateX(22px);
         }
     }
+
+    &.disabled,
+    &:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+}
+
+.statusHint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #ef4444;
 }
 
 .actions {
