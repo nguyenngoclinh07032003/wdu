@@ -9,6 +9,7 @@ import {
     updateAddress,
     deleteAddress,
     setDefaultAddress,
+    setCheckoutAddressId,
 } from '../../services/addressService';
 import {
     getAccuratePosition,
@@ -388,12 +389,19 @@ function AddressBook() {
         try {
             setSubmitting(true);
 
+            let savedId = editingId;
+
             if (editingId) {
                 await updateAddress(editingId, payload);
                 alert('Cập nhật địa chỉ thành công');
             } else {
-                await createAddress(payload);
+                const created = await createAddress(payload);
+                savedId = created?._id || created?.id || savedId;
                 alert('Thêm địa chỉ thành công');
+            }
+
+            if (savedId) {
+                setCheckoutAddressId(savedId);
             }
 
             await fetchAddresses();
@@ -455,6 +463,7 @@ function AddressBook() {
     const handleSetDefault = async (id) => {
         try {
             await setDefaultAddress(id);
+            setCheckoutAddressId(id);
 
             await fetchAddresses();
 

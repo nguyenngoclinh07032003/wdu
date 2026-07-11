@@ -6,15 +6,21 @@ import request, { requestPaymentVNPAY, requestUpdateInfoCart } from '../Config/a
 
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
-import { getAddresses } from '../services/addressService';
+import {
+    getAddresses,
+    getCheckoutAddressId,
+    pickCheckoutAddress,
+    formatAddressText,
+} from '../services/addressService';
 import { FaTruck, FaMoneyCheckAlt, FaUniversity, FaHandHoldingUsd } from 'react-icons/fa';
 
 const cx = classNames.bind(styles);
 
 const SHIPPING_FEE = Number(process.env.ORDER_SHIPPING_FEE) || 30000;
+const MANUAL_ADDRESS_VALUE = 'manual';
 
 function Payments() {
     const [dataCart, setDataCart] = useState([]);
@@ -34,6 +40,7 @@ function Payments() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const { getCart } = useStore();
 
     const cartInfo = dataCart?.[0] || {};
@@ -86,52 +93,80 @@ function Payments() {
         window.scrollTo(0, 0);
     }, []);
 
-    const applyAddressToForm = (item) => {
+    const applyAddressToForm = useCallback((item) => {
         if (!item) return;
-
-        const fullAddress = [item.detail, item.ward, item.district, item.province].filter(Boolean).join(', ');
 
         setName(item.fullName || '');
         setPhone(item.phone || '');
-        setAddress(fullAddress);
-    };
-
-    useEffect(() => {
-        const fetchSavedAddresses = async () => {
-            try {
-                const list = await getAddresses();
-                const safeList = Array.isArray(list) ? list : [];
-
-                setAddresses(safeList);
-
-                const defaultAddress = safeList.find((item) => item.isDefault);
-
-                if (defaultAddress) {
-                    setSelectedAddressId(defaultAddress._id || defaultAddress.id);
-                    applyAddressToForm(defaultAddress);
-                } else {
-                    setSelectedAddressId('');
-                    setName('');
-                    setPhone('');
-                    setAddress('');
-                }
-            } catch (error) {
-                console.log('fetchSavedAddresses error:', error);
-                setAddresses([]);
-            }
-        };
-
-        fetchSavedAddresses();
+        setAddress(formatAddressText(item));
     }, []);
 
-    const handleChangeSavedAddress = (e) => {
+    const syncCartShippingInfo = useCallback(async (item) => {
+        if (!item) return;
+
+        try {
+            await requestUpdateInfoCart({
+                name: item.fullName || '',
+                phone: item.phone || '',
+                address: formatAddressText(item),
+            });
+        } catch (error) {
+            console.log('syncCartShippingInfo error:', error);
+        }
+    }, []);
+
+    const loadCheckoutAddress = useCallback(async () => {
+        try {
+            const list = await getAddresses();
+            const safeList = Array.isArray(list) ? list : [];
+
+            setAddresses(safeList);
+
+            const checkoutAddress = pickCheckoutAddress(safeList, getCheckoutAddressId());
+
+            if (checkoutAddress) {
+                const id = checkoutAddress._id || checkoutAddress.id;
+                setSelectedAddressId(id);
+                applyAddressToForm(checkoutAddress);
+                await syncCartShippingInfo(checkoutAddress);
+                return;
+            }
+
+            setSelectedAddressId('');
+            setName('');
+            setPhone('');
+            setAddress('');
+        } catch (error) {
+            console.log('loadCheckoutAddress error:', error);
+            setAddresses([]);
+        }
+    }, [applyAddressToForm, syncCartShippingInfo]);
+
+    useEffect(() => {
+        if (location.pathname === '/payments') {
+            loadCheckoutAddress();
+        }
+    }, [location.pathname, loadCheckoutAddress]);
+
+    const handleChangeSavedAddress = async (e) => {
         const selectedId = e.target.value;
         setSelectedAddressId(selectedId);
+
+        if (selectedId === MANUAL_ADDRESS_VALUE) {
+            return;
+        }
 
         const selected = addresses.find((item) => String(item._id || item.id) === String(selectedId));
 
         if (selected) {
             applyAddressToForm(selected);
+            await syncCartShippingInfo(selected);
+        }
+    };
+
+    const markManualEntry = () => {
+        if (selectedAddressId !== MANUAL_ADDRESS_VALUE) {
+            setSelectedAddressId(MANUAL_ADDRESS_VALUE);
         }
     };
 
@@ -310,10 +345,10 @@ function Payments() {
 
                         {addresses.length > 0 && (
                             <div className={cx('savedAddressBox')}>
-                                <label>Chọn địa chỉ từ sổ địa chỉ (không bắt buộc)</label>
+                                <label>Chọn địa chỉ từ sổ địa chỉ</label>
 
                                 <select value={selectedAddressId} onChange={handleChangeSavedAddress}>
-                                    <option value="">Chọn địa chỉ giao hàng</option>
+                                    <option value={MANUAL_ADDRESS_VALUE}>Nhập địa chỉ thủ công</option>
 
                                     {addresses.map((item) => {
                                         const id = item._id || item.id;
@@ -337,18 +372,37 @@ function Payments() {
                                         );
                                     })}
                                 </select>
+
+                                <p className={cx('savedAddressHint')}>
+                                    Bạn có thể chọn &quot;Nhập địa chỉ thủ công&quot; rồi tự sửa họ tên, số điện
+                                    thoại và địa chỉ bên dưới.
+                                </p>
                             </div>
                         )}
 
                         <div className={cx('formGroup')}>
                             <label>Họ và tên đầy đủ</label>
-                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => {
+                                    markManualEntry();
+                                    setName(e.target.value);
+                                }}
+                            />
                         </div>
 
                         <div className={cx('row2')}>
                             <div className={cx('formGroup')}>
                                 <label>Số điện thoại</label>
-                                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                                <input
+                                    type="text"
+                                    value={phone}
+                                    onChange={(e) => {
+                                        markManualEntry();
+                                        setPhone(e.target.value);
+                                    }}
+                                />
                             </div>
 
                             <div className={cx('formGroup')}>
@@ -359,7 +413,13 @@ function Payments() {
 
                         <div className={cx('formGroup')}>
                             <label>Địa chỉ giao hàng</label>
-                            <textarea value={address} onChange={(e) => setAddress(e.target.value)} />
+                            <textarea
+                                value={address}
+                                onChange={(e) => {
+                                    markManualEntry();
+                                    setAddress(e.target.value);
+                                }}
+                            />
                         </div>
 
                         <div className={cx('formGroup')}>

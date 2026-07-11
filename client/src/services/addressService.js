@@ -12,6 +12,34 @@ const axiosConfig = {
     },
 };
 
+export const CHECKOUT_ADDRESS_KEY = 'checkoutAddressId';
+
+export const setCheckoutAddressId = (id) => {
+    if (id) {
+        sessionStorage.setItem(CHECKOUT_ADDRESS_KEY, String(id));
+    }
+};
+
+export const getCheckoutAddressId = () => sessionStorage.getItem(CHECKOUT_ADDRESS_KEY);
+
+export const pickCheckoutAddress = (addresses, preferredId = null) => {
+    const list = Array.isArray(addresses) ? addresses : [];
+    if (!list.length) return null;
+
+    if (preferredId) {
+        const preferred = list.find((item) => String(item._id || item.id) === String(preferredId));
+        if (preferred) return preferred;
+    }
+
+    return list.find((item) => item.isDefault) || list[0];
+};
+
+export const formatAddressText = (item) => {
+    if (!item) return '';
+
+    return [item.detail, item.ward, item.district, item.province].filter(Boolean).join(', ');
+};
+
 // GET ALL ADDRESSES
 export const getAddresses = async () => {
     try {
