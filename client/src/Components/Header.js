@@ -93,9 +93,7 @@ function Header() {
                         <Link to="/voucher">Ưu đãi</Link>
                         <Link to="/blog">Kiến thức</Link>
                         <Link to="/about">Về chúng tôi</Link>
-                        <button type="button" className={cx('navLinkBtn')} onClick={() => scrollToSection('footer')}>
-                            Liên hệ
-                        </button>{' '}
+                        <Link to="/contact">Liên hệ</Link>
                     </nav>
                 </div>
 
@@ -307,16 +305,11 @@ function Header() {
                                     Về chúng tôi
                                 </Link>
                             </li>
-                            <button
-                                type="button"
-                                className={cx('mobileLinkBtn')}
-                                onClick={() => {
-                                    handleClose();
-                                    scrollToSection('footer');
-                                }}
-                            >
-                                Liên hệ
-                            </button>
+                            <li>
+                                <Link to="/contact" onClick={handleClose}>
+                                    Liên hệ
+                                </Link>
+                            </li>
 
                             <li>
                                 <Link to="/cart" onClick={handleClose}>

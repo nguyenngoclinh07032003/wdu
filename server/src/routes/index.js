@@ -155,6 +155,9 @@ function route(app) {
     // Client network info
     app.use('/api', require('./RouteNetwork'));
 
+    // Contact form
+    app.use('/api', require('./RouteContact'));
+
     // Dashboard
     app.use('/api/admin', DashboardRoute);
 

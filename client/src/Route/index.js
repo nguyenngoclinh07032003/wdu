@@ -11,6 +11,7 @@ import RegisterUser from '../Pages/RegisterUser';
 import ForgotPassword from '../Pages/ForgotPassword';
 import VerifyOtp from '../Components/VerifyOtp';
 import About from '../Pages/About';
+import Contact from '../Pages/Contact';
 import Blog from '../Pages/Blog';
 import DetailBlog from '../Pages/DetailBlog';
 import AdminBlog from '../Components/ManageBlog';
@@ -36,6 +37,7 @@ export const publicRoute = [
     { path: '/blog/:slug', element: <DetailBlog /> },
 
     { path: '/about', element: <About /> },
+    { path: '/contact', element: <Contact /> },
     { path: '/cart', element: <Cart /> },
     { path: '/payments', element: <Payments /> },
     { path: '/paymentsuccess', element: <PaymentSuccess /> },

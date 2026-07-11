@@ -8,6 +8,7 @@ import ProtectedAdminRoute from '../../client/src/Route/ProtectedAdminRoute';
 import ProtectedStaffRoute from '../../client/src/Route/ProtectedStaffRoute';
 import ProtectedDoctorRoute from '../../client/src/Route/ProtectedDoctorRoute';
 import ProtectedAskerRoute from '../../client/src/Route/ProtectedAskerRoute';
+import ScrollToTop from './Components/ScrollToTop';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -15,6 +16,7 @@ root.render(
     <React.StrictMode>
         <Provider>
             <Router>
+                <ScrollToTop />
                 <Routes>
                     {publicRoute.map((route, index) => {
                         // Chặn admin

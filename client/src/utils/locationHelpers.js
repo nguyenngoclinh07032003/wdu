@@ -1,6 +1,6 @@
 const NOMINATIM_HEADERS = {
     'Accept-Language': 'vi',
-    'User-Agent': 'WDU-Healthcare-App/1.0 (contact@example.com)',
+    'User-Agent': 'WDU-Healthcare-App/1.0 (linhnnhe171195@fpt.edu.vn)',
 };
 
 const normalizeLocationName = (value) =>

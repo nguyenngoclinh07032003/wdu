@@ -6,9 +6,10 @@ const fs = require('fs');
 const { runChatbotTool } = require('./chatbotTools');
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-const FACEBOOK_URL = process.env.FACEBOOK_URL;
-const ZALO_URL = process.env.ZALO_URL;
-const HOTLINE = process.env.HOTLINE;
+const FACEBOOK_URL =
+    process.env.FACEBOOK_URL || 'https://www.facebook.com/profile.php?id=61589897113612';
+const ZALO_URL = process.env.ZALO_URL || 'https://zalo.me/0986003022';
+const HOTLINE = process.env.HOTLINE || '0986 003 022';
 // Warn instead of exiting; allow server to run even if key is absent.
 if (!apiKey) {
     console.warn('⚠️ Warning: GEMINI_API_KEY missing in .env – chatbot functionality will be disabled');

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { faFacebookF, faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { CONTACT_INFO } from '../constants/contactInfo';
 import logo from '../assests/logo/logoxoa.jpg';
 
 const cx = classNames.bind(styles);
@@ -24,7 +25,12 @@ function Footer() {
                         <p className={cx('desc')}>“XOA dịu nỗi đau – XOA tan áp lực”</p>
 
                         <div className={cx('social')}>
-                            <button className={cx('socialBtn')} aria-label="facebook" type="button">
+                            <button
+                                className={cx('socialBtn')}
+                                aria-label="facebook"
+                                type="button"
+                                onClick={() => window.open(CONTACT_INFO.facebookUrl, '_blank')}
+                            >
                                 <FontAwesomeIcon icon={faFacebookF} />
                             </button>
                             <button className={cx('socialBtn')} aria-label="instagram" type="button">
@@ -45,19 +51,19 @@ function Footer() {
                             <span className={cx('icon')}>
                                 <FontAwesomeIcon icon={faLocationDot} />
                             </span>
-                            <span>Thạch Hoà, Thạch Thất, Hà Nội</span>
+                            <span>{CONTACT_INFO.address}</span>
                         </li>
                         <li className={cx('row')}>
                             <span className={cx('icon')}>
                                 <FontAwesomeIcon icon={faPhone} />
                             </span>
-                            <span>0889 708 303</span>
+                            <a href={`tel:${CONTACT_INFO.phone}`}>{CONTACT_INFO.phoneDisplay}</a>
                         </li>
                         <li className={cx('row')}>
                             <span className={cx('icon')}>
                                 <FontAwesomeIcon icon={faEnvelope} />
                             </span>
-                            <span>contact@healthcare.vn</span>
+                            <a href={`mailto:${CONTACT_INFO.customerEmail}`}>{CONTACT_INFO.customerEmail}</a>
                         </li>
                     </ul>
                 </div>
@@ -118,13 +124,11 @@ function Footer() {
                         </li>
                         <li
                             className={cx('link')}
-                            onClick={() =>
-                                window.open('https://www.facebook.com/profile.php?id=61589897113612', '_blank')
-                            }
+                            onClick={() => window.open(CONTACT_INFO.facebookUrl, '_blank')}
                         >
                             Facebook
                         </li>
-                        <li className={cx('link')} onClick={() => window.open('https://zalo.me/0987654321', '_blank')}>
+                        <li className={cx('link')} onClick={() => window.open(CONTACT_INFO.zaloUrl, '_blank')}>
                             Zalo
                         </li>
                     </ul>
