@@ -51,10 +51,11 @@ function Cart() {
     const cartInfo = dataCart?.[0] || {};
     const voucher = cartInfo?.voucher;
     const hasVoucher = voucher?.code;
-    const productDiscount = hasVoucher && voucher.category !== 'shipping' ? Number(voucher.discountAmount || 0) : 0;
-    const shippingDiscount = hasVoucher && voucher.category === 'shipping' ? Number(voucher.discountAmount || 0) : 0;
-    const finalShippingFee = Math.max(SHIPPING_FEE - shippingDiscount, 0);
-    const finalTotal = Math.max(totalPrice - productDiscount + finalShippingFee, 0);
+    const hasProducts = dataProducts.length > 0;
+    const productDiscount = hasProducts && hasVoucher && voucher.category !== 'shipping' ? Number(voucher.discountAmount || 0) : 0;
+    const shippingDiscount = hasProducts && hasVoucher && voucher.category === 'shipping' ? Number(voucher.discountAmount || 0) : 0;
+    const finalShippingFee = hasProducts ? Math.max(SHIPPING_FEE - shippingDiscount, 0) : 0;
+    const finalTotal = hasProducts ? Math.max(totalPrice - productDiscount + finalShippingFee, 0) : 0;
     const handleDeleteCart = async (id) => {
         try {
             if (!id || loadingId === id) return;
