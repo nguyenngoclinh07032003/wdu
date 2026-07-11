@@ -471,165 +471,6 @@
     }
 }
 
-/* leaders */
-
-.leaders {
-    position: relative;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at top center, rgba(225, 240, 196, 0.48), transparent 34%),
-        linear-gradient(180deg, #fbfff7 0%, #f4f9ef 100%);
-    padding: 90px 20px 100px;
-
-    &::before {
-        content: '';
-        position: absolute;
-        width: 420px;
-        height: 420px;
-        border-radius: 50%;
-        background: rgba(225, 240, 196, 0.25);
-        filter: blur(70px);
-        top: -120px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 0;
-    }
-}
-
-.leaderGrid {
-    position: relative;
-    z-index: 2;
-    width: min(1200px, 92%);
-    margin: 36px auto 0;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
-}
-
-.leaderCard {
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(124, 198, 82, 0.12);
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.07);
-    animation: floatItem 5s ease-in-out infinite;
-    transition:
-        transform 0.28s ease,
-        box-shadow 0.28s ease,
-        border-color 0.28s ease;
-
-    &:hover {
-        transform: translateY(-8px);
-        border-color: rgba(124, 198, 82, 0.3);
-        box-shadow: 0 24px 54px rgba(15, 23, 42, 0.13);
-
-        .leaderImage {
-            transform: scale(1.04);
-            filter: brightness(1.03);
-        }
-    }
-}
-
-.leaderVisual {
-    height: 280px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.leaderImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: inherit;
-    display: block;
-    transition:
-        transform 0.45s ease,
-        filter 0.45s ease;
-}
-
-.leaderInfo {
-    padding: 20px 20px 24px;
-
-    h3 {
-        font-size: 18px;
-        margin-bottom: 6px;
-        color: #12321f;
-        font-weight: 900;
-    }
-
-    span {
-        color: #2f7d32;
-        font-size: 14px;
-        font-weight: 700;
-    }
-}
-
-.textIcon {
-    font-size: 74px;
-    font-weight: 950;
-    color: rgba(255, 255, 255, 0.95);
-    letter-spacing: 2px;
-}
-
-.faIcon {
-    font-size: 58px;
-    color: rgba(255, 255, 255, 0.94);
-}
-
-/* leader themes */
-
-.ceo .leaderVisual {
-    background: linear-gradient(135deg, #29a7b5, #1e7f8b);
-
-    &::before {
-        content: '';
-        position: absolute;
-        width: 120px;
-        height: 120px;
-        background: rgba(255, 255, 255, 0.14);
-        border-radius: 50%;
-        top: 22px;
-        right: 18px;
-    }
-}
-
-.doctor .leaderVisual {
-    background: linear-gradient(135deg, #255d67, #1a4b53);
-}
-
-.cto .leaderVisual {
-    background: linear-gradient(135deg, #67b78d, #4f9c74);
-
-    &::before {
-        content: '';
-        position: absolute;
-        width: 130px;
-        height: 130px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.08);
-        transform: rotate(18deg);
-    }
-}
-
-.support .leaderVisual {
-    background: linear-gradient(135deg, #dfe7ea, #cfd9dd);
-
-    .faIcon {
-        color: #7f96a0;
-    }
-}
-
-.marketing .leaderVisual {
-    background: linear-gradient(135deg, #97b96b, #718f49);
-}
-
-.operation .leaderVisual {
-    background: linear-gradient(135deg, #88a7a2, #5f807a);
-}
-
 /* animation */
 
 @keyframes floatItem {
@@ -659,10 +500,6 @@
 
     .valuesGrid {
         grid-template-columns: 1fr;
-    }
-
-    .leaderGrid {
-        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -766,12 +603,7 @@
         }
     }
 
-    .leaderGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .valueCard,
-    .leaderCard {
+    .valueCard {
         border-radius: 20px;
     }
 }

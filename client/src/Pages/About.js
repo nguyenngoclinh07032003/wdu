@@ -8,12 +8,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShieldHeart, faHeartCircleCheck, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import Chatbot from '../utils/Chatbot/Chatbot';
 
-import ceoImage from '../assests/imgs/ceo.png';
-import cfoImage from '../assests/imgs/cfo.png';
-import ctoImage from '../assests/imgs/cto.png';
-import cpoImage from '../assests/imgs/cpo.png';
-import ccoImage from '../assests/imgs/cco.png';
-import cmoImage from '../assests/imgs/cmo.png';
 import groupImage from '../assests/imgs/group.png';
 
 const cx = classNames.bind(styles);
@@ -57,45 +51,6 @@ function About() {
             year: '2029',
             title: 'Mở rộng quy mô',
             desc: 'Hoàn thiện hệ sinh thái sản phẩm chăm sóc sức khỏe, mở rộng thị trường và hướng tới trở thành thương hiệu chăm sóc sức khỏe tại nhà dành cho người trẻ.',
-        },
-    ];
-
-    const leaders = [
-        {
-            name: 'Nguyễn Văn Phan',
-            role: 'Giám đốc điều hành (CEO)',
-            image: ceoImage,
-            type: 'ceo',
-        },
-        {
-            name: 'Nguyễn Thị Xuân Mai',
-            role: 'Giám đốc hành chính (CFO)',
-            image: cfoImage,
-            type: 'cfo',
-        },
-        {
-            name: 'Bùi Đức Duy',
-            role: 'Giám đốc công nghệ (CTO)',
-            image: ctoImage,
-            type: 'cto',
-        },
-        {
-            name: 'Nguyễn Nam Quân',
-            role: 'Giám đốc sản phẩm (CPO)',
-            image: cpoImage,
-            type: 'cpo',
-        },
-        {
-            name: 'Đặng Quỳnh Anh',
-            role: 'Giám đốc nội dung (CCO)',
-            image: ccoImage,
-            type: 'cco',
-        },
-        {
-            name: 'Nguyễn Trung Hiếu',
-            role: 'Giám đốc Marketing (CMO)',
-            image: cmoImage,
-            type: 'cmo',
         },
     ];
 
@@ -197,39 +152,6 @@ function About() {
                                     <h3>{item.year}</h3>
                                     <h4>{item.title}</h4>
                                     <p>{item.desc}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                <section className={cx('leaders')}>
-                    <div className={cx('sectionHeading')}>
-                        <p className={cx('miniLabel')}>ĐỘI NGŨ CHIẾN LƯỢC</p>
-                        <h2>Đội ngũ lãnh đạo</h2>
-                        <small>Những con người tâm huyết đứng sau "Mộc Xoa"</small>
-                    </div>
-
-                    <div className={cx('leaderGrid')}>
-                        {leaders.map((leader, index) => (
-                            <div className={cx('leaderCard', leader.type)} key={index}>
-                                <div className={cx('leaderVisual')}>
-                                    {leader.image ? (
-                                        <img src={leader.image} alt={leader.name} className={cx('leaderImage')} />
-                                    ) : typeof leader.icon === 'string' ? (
-                                        <span className={cx('textIcon')}>{leader.icon}</span>
-                                    ) : leader.icon ? (
-                                        <div className={cx('faIcon')}>
-                                            <FontAwesomeIcon icon={leader.icon} />
-                                        </div>
-                                    ) : (
-                                        <span className={cx('textIcon')}>{leader.type?.toUpperCase()}</span>
-                                    )}
-                                </div>
-
-                                <div className={cx('leaderInfo')}>
-                                    <h3>{leader.name}</h3>
-                                    <span>{leader.role}</span>
                                 </div>
                             </div>
                         ))}
