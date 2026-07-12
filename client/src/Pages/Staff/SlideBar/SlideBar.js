@@ -8,6 +8,7 @@ import {
     faHome,
     faGear,
     faInbox,
+    faHeadset,
 } from '@fortawesome/free-solid-svg-icons';
 import request from '../../../Config/api';
 import { useNavigate } from 'react-router-dom';
@@ -16,7 +17,7 @@ import logo from '../../../assests/logo/logoxoa.jpg';
 
 const cx = classNames.bind(styles);
 
-function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
+function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar, supportPendingCount = 0 }) {
     const navigate = useNavigate();
 
     const [staffInfo, setStaffInfo] = useState({
@@ -132,6 +133,19 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                         <FontAwesomeIcon icon={faInbox} />
                     </span>
                     <span>Câu hỏi khách hàng</span>
+                </li>
+
+                <li
+                    onClick={() => setCheckTypeSlideBar(6)}
+                    className={cx('menuItem', { active: checkTypeSlideBar === 6 })}
+                >
+                    <span className={cx('icon')}>
+                        <FontAwesomeIcon icon={faHeadset} />
+                    </span>
+                    <span style={{ flex: 1 }}>Yêu cầu hỗ trợ</span>
+                    {supportPendingCount > 0 ? (
+                        <span className={cx('menuBadge')}>{supportPendingCount}</span>
+                    ) : null}
                 </li>
             </ul>
 

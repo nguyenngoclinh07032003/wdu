@@ -16,6 +16,9 @@ import OrderDetailModal from '../utils/Modal/ModalDetailOder';
 import AddressBook from './AddressBook/AddressBook';
 import ReviewProduct from '../Pages/ProfileUser/ReviewPro';
 import ReminderPage from '../Pages/ProfileUser/ReminderPage';
+import CustomerNotifications from '../Pages/ProfileUser/CustomerNotifications';
+import MySupportRequests from '../Pages/ProfileUser/MySupportRequests';
+import { fetchCustomerNotifications } from '../services/customerSupportService';
 
 const cx = classNames.bind(styles);
 
@@ -27,6 +30,8 @@ function InfoUser() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [loadingSave, setLoadingSave] = useState(false);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+    const [selectedSupportRequestId, setSelectedSupportRequestId] = useState(null);
 
     const [formData, setFormData] = useState({
         fullname: '',
@@ -97,6 +102,19 @@ function InfoUser() {
     useEffect(() => {
         fetchPayments();
     }, [fetchPayments]);
+
+    const loadUnreadNotifications = useCallback(async () => {
+        try {
+            const res = await fetchCustomerNotifications();
+            setUnreadNotificationCount(res?.unreadCount || 0);
+        } catch (error) {
+            console.log(error);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadUnreadNotifications();
+    }, [loadUnreadNotifications, activeTab]);
 
     useEffect(() => {
         if (activeTab === 'orders') {
@@ -282,6 +300,25 @@ function InfoUser() {
             case 'review':
                 return <ReviewProduct dataPayments={dataPayments} />;
 
+            case 'notifications':
+                return (
+                    <CustomerNotifications
+                        onUnreadCountChange={setUnreadNotificationCount}
+                        onOpenSupportRequest={(supportRequestId) => {
+                            setSelectedSupportRequestId(supportRequestId);
+                            setActiveTab('support');
+                        }}
+                    />
+                );
+
+            case 'support':
+                return (
+                    <MySupportRequests
+                        initialRequestId={selectedSupportRequestId}
+                        onSelectRequest={setSelectedSupportRequestId}
+                    />
+                );
+
             default:
                 return null;
         }
@@ -299,7 +336,12 @@ function InfoUser() {
                 </div>
 
                 <div className={cx('content')}>
-                    <AccountSidebar onLogout={handleLogOut} activeKey={activeTab} onChangeTab={setActiveTab} />
+                    <AccountSidebar
+                        onLogout={handleLogOut}
+                        activeKey={activeTab}
+                        onChangeTab={setActiveTab}
+                        unreadNotificationCount={unreadNotificationCount}
+                    />
                     <section className={cx('mainContent')}>{renderRightContent()}</section>
                 </div>
             </main>

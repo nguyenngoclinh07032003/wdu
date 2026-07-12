@@ -21,6 +21,7 @@ import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import Chatbot from '../utils/Chatbot/Chatbot';
 import { submitContactRequest } from '../services/contactService';
+import compressImageFile from '../utils/compressImageFile';
 import {
     CONTACT_FAQS,
     CONTACT_INFO,
@@ -50,6 +51,7 @@ function Contact() {
     const [imagePreview, setImagePreview] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [lastRequestCode, setLastRequestCode] = useState('');
     const [openFaq, setOpenFaq] = useState(0);
 
     const showOrderCode = form.supportType === 'order-support' || form.supportType === 'return-warranty';
@@ -84,13 +86,19 @@ function Contact() {
         setImagePreview(URL.createObjectURL(file));
     };
 
-    const readFileAsBase64 = (file) =>
-        new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+    const readFileAsBase64 = async (file) => {
+        try {
+            return await compressImageFile(file);
+        } catch (error) {
+            console.log(error);
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -128,19 +136,28 @@ function Contact() {
                 imageData = await readFileAsBase64(imageFile);
             }
 
-            await submitContactRequest({
+            const res = await submitContactRequest({
                 ...form,
                 imageName: imageFile?.name || '',
                 imageData,
             });
 
+            setLastRequestCode(res?.requestCode || '');
             setSubmitted(true);
             setForm(INITIAL_FORM);
             setImageFile(null);
             setImagePreview('');
             toast.success('Mộc Xoa đã nhận được yêu cầu của bạn');
         } catch (error) {
-            toast.error(error?.response?.data?.message || 'Không thể gửi yêu cầu, vui lòng thử lại');
+            const status = error?.response?.status;
+            if (status === 413) {
+                toast.error(
+                    error?.response?.data?.message ||
+                        'Ảnh đính kèm quá lớn. Vui lòng chọn ảnh nhỏ hơn hoặc gửi không kèm ảnh.',
+                );
+            } else {
+                toast.error(error?.response?.data?.message || 'Không thể gửi yêu cầu, vui lòng thử lại');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -217,6 +234,11 @@ function Contact() {
                             {submitted ? (
                                 <div className={cx('successBox')}>
                                     <h2>Mộc Xoa đã nhận được yêu cầu của bạn</h2>
+                                    {lastRequestCode ? (
+                                        <p>
+                                            Mã yêu cầu của bạn: <strong>{lastRequestCode}</strong>
+                                        </p>
+                                    ) : null}
                                     <p>
                                         Cảm ơn bạn đã liên hệ. Đội ngũ của chúng tôi sẽ kiểm tra thông tin và phản hồi
                                         trong thời gian sớm nhất.
@@ -224,7 +246,10 @@ function Contact() {
                                     <button
                                         type="button"
                                         className={cx('btnPrimary')}
-                                        onClick={() => setSubmitted(false)}
+                                        onClick={() => {
+                                            setSubmitted(false);
+                                            setLastRequestCode('');
+                                        }}
                                     >
                                         Gửi yêu cầu khác
                                     </button>

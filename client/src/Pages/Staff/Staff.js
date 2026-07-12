@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import SlideBar from './SlideBar/SlideBar';
 import HomePage from './HomePage/HomePage';
 import { requestStaff } from '../../Config/api';
+import { fetchSupportRequestPendingCount } from '../../services/supportRequestService';
 import { useNavigate } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
@@ -13,6 +14,7 @@ const cx = classNames.bind(styles);
 const Staff = () => {
     const navigate = useNavigate();
     const [checkTypeSlideBar, setCheckTypeSlideBar] = useState(1);
+    const [supportPendingCount, setSupportPendingCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [allowed, setAllowed] = useState(false);
 
@@ -44,6 +46,21 @@ const Staff = () => {
         };
     }, [navigate]);
 
+    useEffect(() => {
+        if (!allowed) return;
+
+        const loadSupportPendingCount = async () => {
+            try {
+                const res = await fetchSupportRequestPendingCount();
+                setSupportPendingCount(res?.pendingCount || 0);
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        loadSupportPendingCount();
+    }, [allowed, checkTypeSlideBar]);
+
     if (loading) {
         return <div style={{ padding: '20px' }}>Đang tải trang Staff...</div>;
     }
@@ -55,11 +72,18 @@ const Staff = () => {
     return (
         <div className={cx('wrapper')}>
             <div className={cx('slidebar')}>
-                <SlideBar setCheckTypeSlideBar={setCheckTypeSlideBar} checkTypeSlideBar={checkTypeSlideBar} />
+                <SlideBar
+                    setCheckTypeSlideBar={setCheckTypeSlideBar}
+                    checkTypeSlideBar={checkTypeSlideBar}
+                    supportPendingCount={supportPendingCount}
+                />
             </div>
 
             <div className={cx('home-page')}>
-                <HomePage checkTypeSlideBar={checkTypeSlideBar} />
+                <HomePage
+                    checkTypeSlideBar={checkTypeSlideBar}
+                    onSupportPendingCountChange={setSupportPendingCount}
+                />
             </div>
         </div>
     );

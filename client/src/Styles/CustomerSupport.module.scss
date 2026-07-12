@@ -1,0 +1,252 @@
+.customerPage {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.pageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pageTitle {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: #1f3b22;
+}
+
+.pageDesc {
+    margin: 4px 0 0;
+    color: #6f7d6a;
+    font-size: 14px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e3ebda;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 4px 14px rgba(20, 40, 20, 0.04);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.listItem {
+    width: 100%;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #e3ebda;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: #9bc96d;
+    }
+}
+
+.listTop {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.code {
+    font-size: 15px;
+    font-weight: 800;
+    color: #1f3b22;
+}
+
+.meta {
+    font-size: 12px;
+    color: #7a8872;
+}
+
+.message {
+    margin: 0;
+    color: #475467;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.statusBadge {
+    display: inline-flex;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.status_pending {
+    background: #fff4d6;
+    color: #9a6700;
+}
+
+.status_received,
+.status_processing {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status_waiting_customer {
+    background: #f3e8ff;
+    color: #7b1fa2;
+}
+
+.status_resolved {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status_closed {
+    background: #eceff1;
+    color: #546e7a;
+}
+
+.status_cancelled {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.infoItem {
+    background: #f8fbf5;
+    border: 1px solid #e7efe0;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+
+.infoLabel {
+    display: block;
+    font-size: 12px;
+    color: #7a8872;
+    margin-bottom: 4px;
+}
+
+.infoValue {
+    font-size: 14px;
+    color: #233521;
+    font-weight: 700;
+}
+
+.messageBox {
+    background: #f8fbf5;
+    border: 1px solid #e7efe0;
+    border-radius: 12px;
+    padding: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.timelineItem {
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e7efe0;
+}
+
+.timelineStaff {
+    background: #f3f9ec;
+    border-color: #cfe6b7;
+}
+
+.timelineCustomer {
+    background: #fff;
+}
+
+.timelineMeta {
+    font-size: 12px;
+    color: #7a8872;
+    margin-top: 6px;
+}
+
+.notificationItem {
+    border: 1px solid #e3ebda;
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.unread {
+        background: #f3f9ec;
+        border-color: #cfe6b7;
+    }
+}
+
+.notificationTitle {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1f3b22;
+}
+
+.notificationMessage {
+    margin: 0;
+    color: #475467;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.notificationMeta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #7a8872;
+}
+
+.btnSecondary,
+.btnGhost {
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.btnSecondary {
+    background: #e8f4dc;
+    color: #2f5d1f;
+}
+
+.btnGhost {
+    background: #fff;
+    border: 1px solid #d7e3cb;
+    color: #4f6245;
+}
+
+.emptyBox {
+    padding: 28px;
+    text-align: center;
+    color: #7a8872;
+    border: 1px dashed #d7e3cb;
+    border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+    .detailGrid {
+        grid-template-columns: 1fr;
+    }
+}

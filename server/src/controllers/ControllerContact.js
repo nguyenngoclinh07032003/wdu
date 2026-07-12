@@ -1,15 +1,11 @@
 const createMailTransport = require('../SendMail/mailTransport');
-
-const SUPPORT_LABELS = {
-    'product-advice': 'Tư vấn sản phẩm',
-    'order-support': 'Kiểm tra đơn hàng',
-    'return-warranty': 'Đổi trả hoặc bảo hành',
-    feedback: 'Góp ý hoặc khiếu nại',
-    partnership: 'Hợp tác kinh doanh',
-    other: 'Nội dung khác',
-};
-
-const isValidPhone = (phone = '') => /^0\d{9}$/.test(String(phone).replace(/\s/g, ''));
+const ModelSupportRequest = require('../models/ModelSupportRequest');
+const {
+    SUPPORT_TYPE_LABELS,
+    isValidPhone,
+    generateRequestCode,
+} = require('../utils/supportRequestHelpers');
+const { normalizePhone } = require('../utils/supportCustomerNotify');
 
 const ControllerContact = {
     async submit(req, res) {
@@ -34,7 +30,7 @@ const ControllerContact = {
                 return res.status(400).json({ message: 'Số điện thoại không hợp lệ' });
             }
 
-            if (!supportType || !SUPPORT_LABELS[supportType]) {
+            if (!supportType || !SUPPORT_TYPE_LABELS[supportType]) {
                 return res.status(400).json({ message: 'Vui lòng chọn nội dung cần hỗ trợ' });
             }
 
@@ -51,7 +47,36 @@ const ControllerContact = {
                 return res.status(400).json({ message: 'Vui lòng nhập mã đơn hàng' });
             }
 
-            const supportLabel = SUPPORT_LABELS[supportType];
+            const supportLabel = SUPPORT_TYPE_LABELS[supportType];
+            const requestCode = await generateRequestCode();
+            const normalizedImageData = imageData ? String(imageData).replace(/^data:.*;base64,/, '') : '';
+            const maxImageBytes = 2 * 1024 * 1024;
+            const safeImageData =
+                normalizedImageData && normalizedImageData.length <= maxImageBytes ? normalizedImageData : '';
+
+            const supportRequest = await ModelSupportRequest.create({
+                requestCode,
+                fullName: fullName.trim(),
+                phone: normalizePhone(phone),
+                email: email?.trim() || '',
+                customerUserId: req.user?.id || req.user?._id || null,
+                supportType,
+                supportTypeLabel: supportLabel,
+                orderCode: orderCode?.trim() || '',
+                message: message.trim(),
+                imageName: safeImageData ? imageName || 'image.jpg' : '',
+                imageData: safeImageData,
+                agreeTerms: true,
+                status: 'pending',
+                statusHistory: [
+                    {
+                        status: 'pending',
+                        note: 'Khách hàng gửi yêu cầu từ trang Liên hệ',
+                        createdAt: new Date(),
+                    },
+                ],
+            });
+
             const recipient =
                 supportType === 'partnership'
                     ? process.env.PARTNER_EMAIL || 'linhnnhe171195@fpt.edu.vn'
@@ -59,6 +84,7 @@ const ControllerContact = {
 
             const mailBody = `
                 <h2>Yêu cầu hỗ trợ mới từ website Mộc Xoa</h2>
+                <p><strong>Mã yêu cầu:</strong> ${requestCode}</p>
                 <p><strong>Họ và tên:</strong> ${fullName}</p>
                 <p><strong>Số điện thoại:</strong> ${phone}</p>
                 <p><strong>Email:</strong> ${email || 'Không cung cấp'}</p>
@@ -69,37 +95,33 @@ const ControllerContact = {
             `;
 
             const attachments = [];
-            if (imageData && imageName) {
-                const base64Data = String(imageData).replace(/^data:.*;base64,/, '');
-                if (base64Data.length <= 3 * 1024 * 1024) {
-                    attachments.push({
-                        filename: imageName,
-                        content: base64Data,
-                        encoding: 'base64',
-                    });
-                }
+            if (supportRequest.imageData && supportRequest.imageName) {
+                attachments.push({
+                    filename: supportRequest.imageName,
+                    content: supportRequest.imageData,
+                    encoding: 'base64',
+                });
             }
 
-            try {
+            const sendContactEmail = async () => {
                 const transport = await createMailTransport();
                 await transport.sendMail({
                     from: process.env.EMAIL_USER,
                     to: recipient,
                     replyTo: email || undefined,
-                    subject: `[Liên hệ] ${supportLabel} - ${fullName}`,
+                    subject: `[${requestCode}] ${supportLabel} - ${fullName}`,
                     html: mailBody,
                     attachments,
                 });
-            } catch (mailError) {
+            };
+
+            sendContactEmail().catch((mailError) => {
                 console.error('Contact mail error:', mailError);
-                return res.status(503).json({
-                    message:
-                        'Không thể gửi yêu cầu qua email lúc này. Vui lòng liên hệ hotline 0986 003 022 hoặc Zalo.',
-                });
-            }
+            });
 
             return res.status(200).json({
                 message: 'Mộc Xoa đã nhận được yêu cầu của bạn',
+                requestCode: supportRequest.requestCode,
             });
         } catch (error) {
             console.error('Submit contact error:', error);

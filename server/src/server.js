@@ -35,8 +35,18 @@ app.use(
         credentials: true,
     }),
 );
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
+app.use(bodyParser.json({ limit: '5mb' }));
+
+app.use((err, req, res, next) => {
+    if (err?.type === 'entity.too.large') {
+        return res.status(413).json({
+            message: 'Dữ liệu gửi quá lớn. Vui lòng chọn ảnh nhỏ hơn hoặc bỏ ảnh đính kèm.',
+        });
+    }
+
+    return next(err);
+});
 app.use(express.static(path.join(__dirname, '')));
 
 // Health Check

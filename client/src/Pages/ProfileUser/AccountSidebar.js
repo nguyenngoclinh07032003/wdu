@@ -5,16 +5,15 @@ import {
     faUser,
     faBox,
     faLocationDot,
-    faTag,
     faStar,
     faRightFromBracket,
-    faTrophy,
     faBell,
+    faHeadset,
 } from '@fortawesome/free-solid-svg-icons';
 
 const cx = classNames.bind(styles);
 
-function AccountSidebar({ onLogout, activeKey = 'profile', onChangeTab }) {
+function AccountSidebar({ onLogout, activeKey = 'profile', onChangeTab, unreadNotificationCount = 0 }) {
     return (
         <aside className={cx('sidebar')}>
             <div className={cx('menuCard')}>
@@ -43,6 +42,25 @@ function AccountSidebar({ onLogout, activeKey = 'profile', onChangeTab }) {
                     >
                         <FontAwesomeIcon icon={faLocationDot} />
                         <span>Sổ địa chỉ</span>
+                    </li>
+
+                    <li
+                        className={cx('menuItem', { active: activeKey === 'notifications' })}
+                        onClick={() => onChangeTab('notifications')}
+                    >
+                        <FontAwesomeIcon icon={faBell} />
+                        <span>Thông báo</span>
+                        {unreadNotificationCount > 0 ? (
+                            <span className={cx('menuBadge')}>{unreadNotificationCount}</span>
+                        ) : null}
+                    </li>
+
+                    <li
+                        className={cx('menuItem', { active: activeKey === 'support' })}
+                        onClick={() => onChangeTab('support')}
+                    >
+                        <FontAwesomeIcon icon={faHeadset} />
+                        <span>Yêu cầu hỗ trợ của tôi</span>
                     </li>
 
                     <li

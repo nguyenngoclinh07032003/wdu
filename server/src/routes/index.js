@@ -158,6 +158,12 @@ function route(app) {
     // Contact form
     app.use('/api', require('./RouteContact'));
 
+    // Support requests & notifications (customer) — before staff /:id routes
+    app.use('/api', require('./RouteCustomerSupport'));
+
+    // Support requests (staff)
+    app.use('/api', require('./RouteSupportRequest'));
+
     // Dashboard
     app.use('/api/admin', DashboardRoute);
 

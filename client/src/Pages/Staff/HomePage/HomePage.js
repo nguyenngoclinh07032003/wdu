@@ -7,11 +7,12 @@ import ManageOrder from '../../../Components/ManageOrder';
 import Dashboard from '../../../Components/Dashboard';
 import ManageShipper from '../../../Components/ManageShipper';
 import StaffInbox from '../Components/StaffInbox';
+import StaffSupportRequests from '../Components/StaffSupportRequests';
 import { useState } from 'react';
 
 const cx = classNames.bind(styles);
 
-function HomePage({ checkTypeSlideBar }) {
+function HomePage({ checkTypeSlideBar, onSupportPendingCountChange }) {
     const [checkOpenAddProduct, setCheckOpenAddProduct] = useState(false);
 
     return (
@@ -27,6 +28,9 @@ function HomePage({ checkTypeSlideBar }) {
             ) : null}
             {checkTypeSlideBar === 4 ? <ManageShipper /> : null}
             {checkTypeSlideBar === 5 ? <StaffInbox /> : null}
+            {checkTypeSlideBar === 6 ? (
+                <StaffSupportRequests onPendingCountChange={onSupportPendingCountChange} />
+            ) : null}
         </div>
     );
 }
