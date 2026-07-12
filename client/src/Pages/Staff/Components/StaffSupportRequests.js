@@ -38,7 +38,10 @@ function StaffSupportRequests({ onPendingCountChange }) {
         return (
             <StaffSupportRequestDetail
                 requestId={selectedId}
-                onBack={() => setSelectedId(null)}
+                onBack={() => {
+                    setSelectedId(null);
+                    loadList();
+                }}
                 onUpdated={loadList}
             />
         );
@@ -53,7 +56,7 @@ function StaffSupportRequests({ onPendingCountChange }) {
             <h2 className={cx('pageTitle')}>Yêu cầu hỗ trợ</h2>
             <p className={cx('pageDesc')}>
                 Tiếp nhận và xử lý yêu cầu từ trang Liên hệ.
-                {pendingCount > 0 ? ` (${pendingCount} yêu cầu chưa xử lý)` : ''}
+                {pendingCount > 0 ? ` (${pendingCount} yêu cầu chờ tiếp nhận)` : ''}
             </p>
 
             <div className={cx('filters')}>
@@ -66,10 +69,10 @@ function StaffSupportRequests({ onPendingCountChange }) {
                 </button>
                 <button
                     type="button"
-                    className={cx('filterBtn', { active: filter === 'pending' })}
-                    onClick={() => setFilter('pending')}
+                    className={cx('filterBtn', { active: filter === 'in_progress' })}
+                    onClick={() => setFilter('in_progress')}
                 >
-                    Chờ tiếp nhận
+                    Đang xử lý
                 </button>
                 <button
                     type="button"

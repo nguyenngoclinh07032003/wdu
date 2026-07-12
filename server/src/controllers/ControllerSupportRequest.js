@@ -2,7 +2,8 @@ const ModelSupportRequest = require('../models/ModelSupportRequest');
 const ModelUser = require('../models/ModelUser');
 const {
     SUPPORT_STATUS_LABELS,
-    UNPROCESSED_STATUSES,
+    PENDING_RECEPTION_STATUSES,
+    IN_PROGRESS_STATUSES,
     appendStatusHistory,
 } = require('../utils/supportRequestHelpers');
 const {
@@ -30,7 +31,7 @@ const ControllerSupportRequest = {
     async getPendingCount(req, res) {
         try {
             const count = await ModelSupportRequest.countDocuments({
-                status: { $in: UNPROCESSED_STATUSES },
+                status: { $in: PENDING_RECEPTION_STATUSES },
             });
 
             return res.status(200).json({ pendingCount: count });
@@ -62,14 +63,16 @@ const ControllerSupportRequest = {
             const filter = {};
 
             if (status === 'unprocessed') {
-                filter.status = { $in: UNPROCESSED_STATUSES };
+                filter.status = { $in: PENDING_RECEPTION_STATUSES };
+            } else if (status === 'in_progress') {
+                filter.status = { $in: IN_PROGRESS_STATUSES };
             } else if (status) {
                 filter.status = status;
             }
 
             const [data, pendingCount] = await Promise.all([
                 ModelSupportRequest.find(filter).sort({ createdAt: -1 }).lean(),
-                ModelSupportRequest.countDocuments({ status: { $in: UNPROCESSED_STATUSES } }),
+                ModelSupportRequest.countDocuments({ status: { $in: PENDING_RECEPTION_STATUSES } }),
             ]);
 
             const mapped = data.map((item) => ({

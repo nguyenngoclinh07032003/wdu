@@ -19,7 +19,9 @@ const SUPPORT_STATUS_LABELS = {
     cancelled: 'Đã hủy',
 };
 
-const UNPROCESSED_STATUSES = ['pending', 'received', 'processing', 'waiting_customer'];
+const PENDING_RECEPTION_STATUSES = ['pending'];
+const IN_PROGRESS_STATUSES = ['received', 'processing', 'waiting_customer'];
+const UNPROCESSED_STATUSES = [...PENDING_RECEPTION_STATUSES, ...IN_PROGRESS_STATUSES];
 
 const isValidPhone = (phone = '') => /^0\d{9}$/.test(String(phone).replace(/\s/g, ''));
 
@@ -53,6 +55,8 @@ function appendStatusHistory(record, nextStatus, note, user, action = 'status_ch
 module.exports = {
     SUPPORT_TYPE_LABELS,
     SUPPORT_STATUS_LABELS,
+    PENDING_RECEPTION_STATUSES,
+    IN_PROGRESS_STATUSES,
     UNPROCESSED_STATUSES,
     isValidPhone,
     generateRequestCode,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames/bind';
 import styles from '../../../Styles/StaffSupportRequests.module.scss';
 import { toast } from 'react-toastify';
@@ -83,6 +83,7 @@ function StaffSupportRequestDetail({ requestId, onBack, onUpdated }) {
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [lightboxImage, setLightboxImage] = useState('');
+    const autoAcceptAttemptedRef = useRef(false);
 
     const currentStaffId = currentStaff?.id || currentStaff?._id || '';
 
@@ -116,8 +117,41 @@ function StaffSupportRequestDetail({ requestId, onBack, onUpdated }) {
         };
 
         bootstrap();
+        autoAcceptAttemptedRef.current = false;
         loadDetail();
     }, [requestId]);
+
+    useEffect(() => {
+        if (!detail || !currentStaffId || loading) return;
+
+        const assignedTo = detail.assignedTo ? String(detail.assignedTo) : '';
+        const isTakenByOther = assignedTo && assignedTo !== String(currentStaffId);
+
+        if (detail.status !== 'pending' || isTakenByOther || autoAcceptAttemptedRef.current) {
+            return;
+        }
+
+        autoAcceptAttemptedRef.current = true;
+
+        const autoAccept = async () => {
+            try {
+                setSubmitting(true);
+                const res = await acceptSupportRequest(requestId);
+                toast.success(res?.message || 'Đã tiếp nhận yêu cầu');
+                await loadDetail();
+                onUpdated?.();
+            } catch (error) {
+                if (error?.response?.status !== 409) {
+                    toast.error(error?.response?.data?.message || 'Không thể tiếp nhận yêu cầu');
+                }
+                autoAcceptAttemptedRef.current = false;
+            } finally {
+                setSubmitting(false);
+            }
+        };
+
+        autoAccept();
+    }, [detail, currentStaffId, loading, onUpdated, requestId]);
 
     const refreshAll = async () => {
         await loadDetail();
