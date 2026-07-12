@@ -6,10 +6,11 @@ import request from '../../Config/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styles from '../../Styles/ModalUpdatePro.module.scss';
+import { formatPriceWithCommas, parsePriceInput } from '../formatPriceInput';
 
 function ModalUpdatePro({ show, setShow, data }) {
     const [nameProduct, setNameProduct] = useState('');
-    const [priceProduct, setPriceProduct] = useState(0);
+    const [priceProduct, setPriceProduct] = useState('');
     const [description, setDescription] = useState('');
     const [isCombo, setIsCombo] = useState(false);
 
@@ -27,7 +28,7 @@ function ModalUpdatePro({ show, setShow, data }) {
         if (!data) return;
 
         setNameProduct(data.name || '');
-        setPriceProduct(data.price || 0);
+        setPriceProduct(formatPriceWithCommas(data.price || 0));
         setDescription(data.description || '');
         setIsCombo(Boolean(data.isCombo));
 
@@ -46,7 +47,7 @@ function ModalUpdatePro({ show, setShow, data }) {
 
             formData.append('id', data?._id || data?.id || data);
             formData.append('nameProduct', nameProduct);
-            formData.append('priceProduct', priceProduct);
+            formData.append('priceProduct', parsePriceInput(priceProduct));
             formData.append('description', currentDescription);
             formData.append('isCombo', isCombo);
 
@@ -128,9 +129,10 @@ function ModalUpdatePro({ show, setShow, data }) {
                         <input
                             className={styles.input}
                             value={priceProduct}
-                            type="number"
-                            onChange={(e) => setPriceProduct(e.target.value)}
-                            placeholder="Nhập giá sản phẩm"
+                            type="text"
+                            inputMode="numeric"
+                            onChange={(e) => setPriceProduct(formatPriceWithCommas(e.target.value))}
+                            placeholder="Ví dụ: 126,000"
                         />
                     </div>
 

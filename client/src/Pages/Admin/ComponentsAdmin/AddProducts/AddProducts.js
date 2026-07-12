@@ -7,6 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { Editor } from '@tinymce/tinymce-react';
+import { formatPriceWithCommas, parsePriceInput } from '../../../../utils/formatPriceInput';
 
 const cx = classNames.bind(styles);
 
@@ -134,7 +135,7 @@ function AddProducts({ setCheckOpenAddProduct }) {
             return false;
         }
 
-        if (!priceProduct || Number(priceProduct) <= 0) {
+        if (!priceProduct || parsePriceInput(priceProduct) <= 0) {
             toast.error('Vui lòng nhập giá sản phẩm hợp lệ');
             return false;
         }
@@ -163,7 +164,7 @@ function AddProducts({ setCheckOpenAddProduct }) {
         const formData = new FormData();
 
         formData.append('nameProduct', nameProduct.trim());
-        formData.append('priceProduct', Number(priceProduct));
+        formData.append('priceProduct', parsePriceInput(priceProduct));
         formData.append('description', description);
         formData.append('checkType', checkType);
         formData.append('isCombo', isCombo);
@@ -246,11 +247,11 @@ function AddProducts({ setCheckOpenAddProduct }) {
                                     <label htmlFor="product-price">Giá sản phẩm</label>
                                     <input
                                         id="product-price"
-                                        type="number"
-                                        min="0"
+                                        type="text"
+                                        inputMode="numeric"
                                         value={priceProduct}
-                                        onChange={(e) => setPriceProduct(e.target.value)}
-                                        placeholder="Ví dụ: 150000"
+                                        onChange={(e) => setPriceProduct(formatPriceWithCommas(e.target.value))}
+                                        placeholder="Ví dụ: 150,000"
                                     />
                                 </div>
 
