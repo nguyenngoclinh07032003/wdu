@@ -296,7 +296,7 @@ class ControllerUser {
 
     async GetOrder(req, res) {
         try {
-            const data = await ModelPayment.find({});
+            const data = await ModelPayment.find({}).sort({ updatedAt: -1, createdAt: -1 });
             return res.status(200).json(data);
         } catch (error) {
             console.error('GetOrder error:', error);

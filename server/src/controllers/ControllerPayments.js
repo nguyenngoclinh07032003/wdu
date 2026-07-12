@@ -8,6 +8,7 @@ const ModelVoucher = require('../models/ModelVoucher');
 const sendMailOrder = require('../SendMail/SendMailOrder');
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
 const { getVoucherAvailabilityError, consumeVoucher, releaseVoucher } = require('../utils/voucherHelpers');
+const { applyOrderStatusSideEffects } = require('../utils/orderStatusEffects');
 
 require('dotenv').config();
 
@@ -23,6 +24,22 @@ class ControllerPayments {
         }
 
         if (!user.isAdmin) {
+            res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+            return null;
+        }
+
+        return user;
+    };
+
+    ensureStaffOrAdmin = (req, res) => {
+        const user = this.getUserFromReq(req);
+
+        if (!user) {
+            res.status(401).json({ message: 'Unauthorized' });
+            return null;
+        }
+
+        if (user.role !== 'staff' && user.isAdmin !== true) {
             res.status(403).json({ message: 'Bạn không có quyền truy cập' });
             return null;
         }
@@ -803,8 +820,8 @@ class ControllerPayments {
 
     EditOrder = async (req, res) => {
         try {
-            const admin = this.ensureAdmin(req, res);
-            if (!admin) return;
+            const operator = this.ensureStaffOrAdmin(req, res);
+            if (!operator) return;
 
             const id = String(req.body?.id || '').trim();
             const nextStatus = String(req.body?.status || '')
@@ -876,69 +893,7 @@ class ControllerPayments {
                 });
             }
 
-            order.status = nextStatus;
-            order.updatedAt = new Date();
-
-            if (nextStatus === 'completed') {
-                order.deliveredAt = new Date();
-
-                if (
-                    String(order.paymentMethod || '')
-                        .trim()
-                        .toUpperCase() === 'COD'
-                ) {
-                    order.paymentStatus = 'paid';
-                }
-            }
-
-            if (nextStatus === 'failed') {
-                order.failedAt = new Date();
-            }
-
-            if (nextStatus === 'returning') {
-                order.returningAt = new Date();
-            }
-
-            if (nextStatus === 'returned') {
-                order.returnedAt = new Date();
-            }
-
-            await order.save();
-
-            if (currentStatus !== 'completed' && nextStatus === 'completed') {
-                await Promise.all(
-                    (order.products || []).map(async (product) => {
-                        const quantity = Number(product.quantity) || 0;
-                        if (quantity <= 0) return;
-
-                        const productId = product.productId || product._id;
-
-                        if (productId) {
-                            const result = await ModelProducts.updateOne(
-                                { _id: productId },
-                                {
-                                    $inc: {
-                                        sold: quantity,
-                                    },
-                                },
-                            );
-
-                            if (result.modifiedCount > 0) return;
-                        }
-
-                        await ModelProducts.updateOne(
-                            {
-                                name: product.nameProduct,
-                            },
-                            {
-                                $inc: {
-                                    sold: quantity,
-                                },
-                            },
-                        );
-                    }),
-                );
-            }
+            await applyOrderStatusSideEffects(order, currentStatus, nextStatus);
 
             return res.status(200).json({
                 message: 'Cập nhật trạng thái thành công',

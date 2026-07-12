@@ -1,4 +1,5 @@
 const ModelPayment = require('../models/ModelPayment');
+const { applyOrderStatusSideEffects } = require('../utils/orderStatusEffects');
 
 class ControllerShipper {
     async getMyOrders(req, res) {
@@ -64,8 +65,8 @@ class ControllerShipper {
                 });
             }
 
-            order.status = 'shipping';
-            await order.save();
+            const previousStatus = order.status;
+            await applyOrderStatusSideEffects(order, previousStatus, 'shipping');
 
             return res.status(200).json({
                 message: 'Đã bắt đầu giao hàng',
@@ -114,22 +115,9 @@ class ControllerShipper {
                 });
             }
 
-            order.status = status;
+            const previousStatus = order.status;
             order.deliveryNote = deliveryNote || '';
-
-            if (status === 'completed') {
-                order.deliveredAt = new Date();
-            }
-
-            if (status === 'failed') {
-                order.failedAt = new Date();
-            }
-
-            if (status === 'returning') {
-                order.returningAt = new Date();
-            }
-
-            await order.save();
+            await applyOrderStatusSideEffects(order, previousStatus, status);
 
             return res.status(200).json({
                 message: 'Cập nhật trạng thái giao hàng thành công',

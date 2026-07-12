@@ -2,7 +2,7 @@ import classNames from 'classnames/bind';
 import styles from '../Styles/ManageOrder.module.scss';
 import Pagination from './Pagination';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import request from '../Config/api';
 import ModalEditOrder from '../utils/Modal/ModalEditOrder';
 import ModalCancelOrder from '../utils/Modal/CancelOrder';
@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 import { faMagnifyingGlass, faFileExport } from '@fortawesome/free-solid-svg-icons';
 const cx = classNames.bind(styles);
 
-function ManageOrder({ allowCancelOrder = true }) {
+function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshIntervalMs = 15000 }) {
     const [dataCart, setDataCart] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [idPro, setIdPro] = useState('');
@@ -39,7 +39,7 @@ function ManageOrder({ allowCancelOrder = true }) {
         };
     };
 
-    const fetchOrders = async () => {
+    const fetchOrders = useCallback(async () => {
         try {
             const res = await request.get('/api/getallorder');
             const orders = Array.isArray(res.data) ? res.data : [];
@@ -48,16 +48,41 @@ function ManageOrder({ allowCancelOrder = true }) {
             console.log('Lỗi lấy đơn hàng:', error);
             setDataCart([]);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchOrders();
-    }, []);
+
+        if (!autoRefresh) return undefined;
+
+        const intervalId = setInterval(fetchOrders, refreshIntervalMs);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchOrders();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [autoRefresh, fetchOrders, refreshIntervalMs]);
 
     const processedOrders = useMemo(() => {
         let result = [...dataCart].sort((a, b) => {
-            const timeA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+            const timeA = a?.updatedAt
+                ? new Date(a.updatedAt).getTime()
+                : a?.createdAt
+                  ? new Date(a.createdAt).getTime()
+                  : 0;
+            const timeB = b?.updatedAt
+                ? new Date(b.updatedAt).getTime()
+                : b?.createdAt
+                  ? new Date(b.createdAt).getTime()
+                  : 0;
             return timeB - timeA;
         });
 
