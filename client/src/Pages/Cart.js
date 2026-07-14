@@ -26,7 +26,7 @@ function Cart() {
     const navigate = useNavigate();
     const { dataCart = [], getCart } = useStore();
     const [loadingId, setLoadingId] = useState(null);
-    const SHIPPING_FEE = Number(process.env.ORDER_SHIPPING_FEE) || 30000;
+    const SHIPPING_FEE = Number(process.env.REACT_APP_ORDER_SHIPPING_FEE || process.env.ORDER_SHIPPING_FEE) || 30000;
     const [voucherCode, setVoucherCode] = useState('');
 
     useEffect(() => {

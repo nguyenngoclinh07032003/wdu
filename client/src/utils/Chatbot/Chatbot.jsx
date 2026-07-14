@@ -62,12 +62,12 @@ const Chatbot = () => {
     const greetingText = useMemo(() => {
         const hour = new Date().getHours();
 
-        if (hour >= 5 && hour < 11) return '🌤️ Chào buổi sáng! Em là XoaAI, rất vui được hỗ trợ anh/chị!';
+        if (hour >= 5 && hour < 11) return '🌤️ Chào buổi sáng! Em là HealthCareAI, rất vui được hỗ trợ anh/chị!';
         if (hour >= 11 && hour < 13) return '☀️ Chào buổi trưa! Anh/chị cần tư vấn về sản phẩm nào ạ?';
         if (hour >= 13 && hour < 18) return '🌿 Chào buổi chiều! Anh/chị cần hỗ trợ gì ạ?';
-        if (hour >= 18 && hour < 22) return '🌙 Chào buổi tối! XoaAI luôn sẵn sàng hỗ trợ.';
+        if (hour >= 18 && hour < 22) return '🌙 Chào buổi tối! HealthCareAI luôn sẵn sàng hỗ trợ.';
 
-        return '💫 Khuya rồi, Anh/chị cần XoaAI hỗ trợ gì không ạ?';
+        return '💫 Khuya rồi, Anh/chị cần HealthCareAI hỗ trợ gì không ạ?';
     }, []);
 
     const scrollToBottom = () => {
@@ -234,7 +234,7 @@ const Chatbot = () => {
                             <img className={styles.headerAvatar} src={AImage} alt="Avatar" />
 
                             <div>
-                                <h2>Xoa AI</h2>
+                                <h2>HealthCareAI AI</h2>
                                 <span>Trợ lý tư vấn sản phẩm</span>
                             </div>
                         </div>

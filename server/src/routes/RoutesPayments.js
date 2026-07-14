@@ -6,6 +6,7 @@ const middlewareController = require('../jwt/ControllerJWT');
 
 router.post('/payment', middlewareController.verifyToken, ControllerPayments.PaymentsMomo);
 router.get('/checkdata', ControllerPayments.checkData);
+router.post('/checkdata', ControllerPayments.checkData);
 router.get('/payment', middlewareController.verifyToken, ControllerPayments.getPayment);
 router.post('/paymentcod', middlewareController.verifyToken, ControllerPayments.PaymentCod);
 router.get('/payments', middlewareController.verifyToken, ControllerPayments.getPayments);

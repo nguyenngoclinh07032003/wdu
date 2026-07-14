@@ -104,7 +104,7 @@ const modelPayment = new Schema({
             default: null,
         },
     },
-    phone: { type: Number, default: 0 },
+    phone: { type: String, default: '' },
     email: { type: String, default: '' },
     username: { type: String, default: '' },
     address: { type: String, default: '' },
