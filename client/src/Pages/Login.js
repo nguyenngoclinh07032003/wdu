@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 
 import {
     FaRegUser,
@@ -174,9 +174,9 @@ function LoginUser() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="Mộc Xoa" />
+                            <img src={logo} alt="HealthCare Device" />
                         </span>
-                        <span>Mộc Xoa</span>
+                        <span>HealthCare Device</span>
                     </div>
                     <div className={cx('intro')}>
                         <span className={cx('tag')}>Luôn đặt sức khỏe lên hàng đầu</span>

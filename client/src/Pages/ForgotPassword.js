@@ -1,7 +1,7 @@
 import classNames from 'classnames/bind';
 import styles from '../Styles/ForgotPassword.module.scss';
 import request from '../Config/api';
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -121,9 +121,9 @@ function ForgotPassword() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="Mộc Xoa" />
+                            <img src={logo} alt="HealthCare Device" />
                         </span>
-                        <span>Mộc Xoa</span>
+                        <span>HealthCare Device</span>
                     </div>
                     <div className={cx('intro')}>
                         <span className={cx('tag')}>Khôi phục tài khoản an toàn</span>

@@ -3,7 +3,7 @@ import styles from '../Styles/Header.module.scss';
 import request, { requestLogout } from '../Config/api';
 import useDebounce from '../hooks/useDebounce';
 
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faCartShopping, faSearch, faUser } from '@fortawesome/free-solid-svg-icons';
