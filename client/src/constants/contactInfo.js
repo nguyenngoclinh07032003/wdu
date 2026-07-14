@@ -27,7 +27,7 @@ export const SUPPORT_CARDS = [
         id: 'product-advice',
         title: 'Tư vấn sản phẩm',
         description:
-            'Bạn chưa biết sản phẩm nào phù hợp với nhu cầu của mình? Đội ngũ Mộc Xoa sẽ hỗ trợ bạn tìm hiểu thông tin, cách sử dụng và lưu ý cần thiết.',
+            'Bạn chưa biết sản phẩm nào phù hợp với nhu cầu của mình? Đội ngũ Healthcare sẽ hỗ trợ bạn tìm hiểu thông tin, cách sử dụng và lưu ý cần thiết.',
         button: 'Nhận tư vấn',
     },
     {
@@ -46,7 +46,7 @@ export const SUPPORT_CARDS = [
     },
     {
         id: 'partnership',
-        title: 'Hợp tác cùng Mộc Xoa',
+        title: 'Hợp tác cùng Healthcare',
         description:
             'Dành cho nhà phân phối, đại lý, người sáng tạo nội dung, đối tác truyền thông hoặc các đơn vị muốn hợp tác kinh doanh.',
         button: 'Gửi đề nghị hợp tác',
@@ -75,7 +75,7 @@ export const CONTACT_FAQS = [
     {
         question: 'Bao lâu tôi sẽ nhận được phản hồi?',
         answer:
-            'Mộc Xoa thường phản hồi trong vòng 24 giờ làm việc. Những yêu cầu liên quan đến đơn hàng sẽ được ưu tiên xử lý sớm hơn.',
+            'Healthcare thường phản hồi trong vòng 24 giờ làm việc. Những yêu cầu liên quan đến đơn hàng sẽ được ưu tiên xử lý sớm hơn.',
     },
     {
         question: 'Tôi cần cung cấp gì khi phản ánh đơn hàng?',

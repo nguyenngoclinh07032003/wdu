@@ -5,7 +5,7 @@ const SendMailOTP = async (email, otp) => {
         const transport = await createMailTransport();
 
         await transport.sendMail({
-            from: `"Mộc Xoa Store" <${process.env.EMAIL_USER}>`,
+            from: `"Healthcare" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Mã OTP xác thực đăng ký tài khoản',
             html: `

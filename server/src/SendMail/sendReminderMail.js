@@ -6,13 +6,13 @@ const sendReminderMail = async ({ to, fullname, title, description, time }) => {
     const transport = await createMailTransport();
 
     await transport.sendMail({
-        from: `"Mộc Xoa" <${process.env.EMAIL_USER}>`,
+        from: `"Healthcare" <${process.env.EMAIL_USER}>`,
         to,
         subject: `Nhắc nhở: ${title}`,
         html: `
             <div style="font-family: Arial, sans-serif; background:#f6fbf3; padding:24px;">
                 <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:14px; padding:24px;">
-                    <h2 style="color:#00523a;">Mộc Xoa</h2>
+                    <h2 style="color:#00523a;">Healthcare</h2>
 
                     <p>Xin chào <b>${fullname || 'bạn'}</b>,</p>
 

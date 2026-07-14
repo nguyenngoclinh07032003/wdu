@@ -12,7 +12,10 @@ const cx = classNames.bind(styles);
 function ProductsTab({ dataProducts = [] }) {
     const hotProducts = useMemo(() => {
         const arr = Array.isArray(dataProducts) ? dataProducts : [];
-        return [...arr].sort((a, b) => (b?.sold ?? 0) - (a?.sold ?? 0)).slice(0, 4);
+        return [...arr]
+            .filter((item) => !item?.isCombo && (item?.sold ?? 0) > 0)
+            .sort((a, b) => (b?.sold ?? 0) - (a?.sold ?? 0))
+            .slice(0, 4);
     }, [dataProducts]);
 
     return (
@@ -21,7 +24,7 @@ function ProductsTab({ dataProducts = [] }) {
             {!!hotProducts.length && (
                 <section className={cx('hotSection')}>
                     <header className={cx('hotHeader')}>
-                        <h1>SẢN PHẨM HOT</h1>
+                        <h1>SẢN PHẨM BÁN CHẠY</h1>
                         <div className={cx('leaf')}>
                             <img src={icon} alt="leaf" />
                         </div>

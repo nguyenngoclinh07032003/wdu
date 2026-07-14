@@ -29,9 +29,9 @@ const ForgotPassword = async (email, token, otp) => {
             },
         });
         const info = await transport.sendMail({
-            from: `"HealthCare Devices" <${process.env.EMAIL_USER}>`,
+            from: `"Healthcare" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: '🔐 Khôi phục mật khẩu - HealthCare Devices',
+            subject: '🔐 Khôi phục mật khẩu - Healthcare',
             html: `
             <div style="max-width: 500px; margin: auto; font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
             <div style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0px 2px 10px rgba(0,0,0,0.1);">
@@ -52,7 +52,7 @@ const ForgotPassword = async (email, token, otp) => {
             </p>
         </div>
         <div style="text-align: center; font-size: 12px; color: #888; margin-top: 20px;">
-        <p>© 2026 HealthCare Devices. All rights reserved.</p>
+        <p>© 2026 Healthcare. All rights reserved.</p>
         </div>
         </div>
             `,

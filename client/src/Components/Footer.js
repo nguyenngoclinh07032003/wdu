@@ -13,7 +13,7 @@ const cx = classNames.bind(styles);
 const POLICY_POPUPS = {
     warranty: {
         title: 'Chính sách bảo hành',
-        description: 'HealthCare Device hỗ trợ bảo hành để khách hàng yên tâm trong quá trình sử dụng sản phẩm:',
+        description: 'Healthcare hỗ trợ bảo hành để khách hàng yên tâm trong quá trình sử dụng sản phẩm:',
         items: [
             'Thời hạn bảo hành áp dụng trong 6 tháng kể từ ngày mua hàng hoặc theo thông tin ghi trên từng sản phẩm.',
             'Sản phẩm được bảo hành khi lỗi phát sinh từ nhà sản xuất, còn tem nhãn và có thông tin đơn hàng hợp lệ.',
@@ -35,7 +35,7 @@ const POLICY_POPUPS = {
     },
     shipping: {
         title: 'Chính sách vận chuyển',
-        description: 'HealthCare Device giao hàng trên toàn quốc với quy trình rõ ràng và thuận tiện:',
+        description: 'Healthcare giao hàng trên toàn quốc với quy trình rõ ràng và thuận tiện:',
         items: [
             'Miễn phí vận chuyển cho đơn hàng từ 300.000đ trở lên.',
             'Đơn hàng dưới 300.000đ áp dụng phí vận chuyển theo khu vực hoặc theo đơn vị giao hàng tại thời điểm đặt hàng.',
@@ -46,7 +46,7 @@ const POLICY_POPUPS = {
     },
     shoppingGuide: {
         title: 'Hướng dẫn mua hàng',
-        description: 'Quý khách có thể đặt mua sản phẩm tại website HealthCare Device theo các bước sau:',
+        description: 'Quý khách có thể đặt mua sản phẩm tại website Healthcare theo các bước sau:',
         items: [
             'Chọn sản phẩm cần mua, kiểm tra thông tin, số lượng và bấm thêm vào giỏ hàng.',
             'Vào giỏ hàng để kiểm tra lại sản phẩm, áp dụng mã giảm giá nếu có.',
@@ -57,12 +57,12 @@ const POLICY_POPUPS = {
     },
     serviceTerms: {
         title: 'Điều khoản dịch vụ',
-        description: 'Khi sử dụng website và đặt hàng tại HealthCare Device, quý khách vui lòng lưu ý:',
+        description: 'Khi sử dụng website và đặt hàng tại Healthcare, quý khách vui lòng lưu ý:',
         items: [
             'Thông tin đặt hàng cần chính xác để quá trình xác nhận và giao hàng được thuận lợi.',
             'Giá bán, chương trình khuyến mãi và tồn kho có thể được cập nhật theo từng thời điểm.',
             'Khách hàng có trách nhiệm kiểm tra sản phẩm khi nhận hàng và phản hồi sớm nếu có vấn đề.',
-            'HealthCare Device cam kết bảo mật thông tin cá nhân và chỉ sử dụng cho mục đích xử lý đơn hàng, chăm sóc khách hàng.',
+            'Healthcare cam kết bảo mật thông tin cá nhân và chỉ sử dụng cho mục đích xử lý đơn hàng, chăm sóc khách hàng.',
             'Các trường hợp đổi trả, bảo hành và vận chuyển được áp dụng theo chính sách tương ứng của cửa hàng.',
         ],
     },
@@ -224,7 +224,7 @@ function Footer() {
             </div>
 
             <div className={cx('footerBottom')}>
-                <p className={cx('copyright')}>Copyright {year} © HealthCare Device</p>
+                <p className={cx('copyright')}>Copyright {year} © Healthcare</p>
 
                 <div className={cx('payment')}>
                     <span className={cx('pay')}>VISA</span>

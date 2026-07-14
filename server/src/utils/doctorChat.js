@@ -24,7 +24,7 @@ async function askDoctorQuestion(question, doctorContext = {}) {
     const hospital = doctorContext.hospital || 'Chưa cập nhật';
 
     const prompt = `
-Bạn là trợ lý chuyên môn y tế nội bộ cho bác sĩ trên nền tảng Mộc Xoa HealthCare Device.
+Bạn là trợ lý chuyên môn y tế nội bộ cho bác sĩ trên nền tảng Healthcare Healthcare.
 
 THÔNG TIN BÁC SĨ:
 - Chuyên khoa: ${specialty}

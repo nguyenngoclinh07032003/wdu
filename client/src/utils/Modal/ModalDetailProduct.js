@@ -36,7 +36,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
             src: item?.img?.[0] || '',
         });
 
-        document.title = `${item.name} - HealthCare Device`;
+        document.title = `${item.name} - Healthcare`;
     }, [item]);
 
     const handleAddToCart = async (props) => {

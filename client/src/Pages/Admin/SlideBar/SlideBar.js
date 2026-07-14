@@ -99,7 +99,7 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                 </div>
 
                 <div className={cx('brandText')}>
-                    <h3>HealthCare Device</h3>
+                    <h3>Healthcare</h3>
                     <span>Admin Panel</span>
                 </div>
             </div>
@@ -219,7 +219,7 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                     </button>
                 </div>
             </div>
-            <div className={cx('copyright')}>© {new Date().getFullYear()} HealthCare Device</div>{' '}
+            <div className={cx('copyright')}>© {new Date().getFullYear()} Healthcare</div>{' '}
         </div>
     );
 }

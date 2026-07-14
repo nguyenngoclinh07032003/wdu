@@ -13,9 +13,9 @@ async function main() {
     const transport = await createMailTransport();
 
     await transport.sendMail({
-        from: `"Mộc Xoa Store" <${process.env.EMAIL_USER}>`,
+        from: `"Healthcare" <${process.env.EMAIL_USER}>`,
         to,
-        subject: 'Test gửi OTP - Mộc Xoa',
+        subject: 'Test gửi OTP - Healthcare',
         html: '<p>Gmail đã cấu hình thành công. Bạn có thể đăng ký và nhận OTP qua email.</p>',
     });
 

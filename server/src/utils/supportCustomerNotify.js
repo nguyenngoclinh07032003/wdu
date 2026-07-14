@@ -73,7 +73,7 @@ async function sendSupportCustomerEmail({ to, subject, html }) {
 }
 
 async function notifyCustomerRequestAccepted(supportRequest, staff) {
-    const staffName = staff?.fullname || staff?.email || supportRequest.assignedToName || 'Nhân viên Mộc Xoa';
+    const staffName = staff?.fullname || staff?.email || supportRequest.assignedToName || 'Nhân viên Healthcare';
     const receivedAt = supportRequest.receivedAt || new Date();
     const statusLabel = SUPPORT_STATUS_LABELS.received;
     const title = 'Yêu cầu đã được tiếp nhận';
@@ -92,7 +92,7 @@ async function notifyCustomerRequestAccepted(supportRequest, staff) {
     if (supportRequest.email) {
         sendSupportCustomerEmail({
             to: supportRequest.email,
-            subject: `[Mộc Xoa] ${supportRequest.requestCode} đã được tiếp nhận`,
+            subject: `[Healthcare] ${supportRequest.requestCode} đã được tiếp nhận`,
             html: `
                 <h2>Yêu cầu hỗ trợ đã được tiếp nhận</h2>
                 <p><strong>Mã yêu cầu:</strong> ${supportRequest.requestCode}</p>
@@ -106,8 +106,8 @@ async function notifyCustomerRequestAccepted(supportRequest, staff) {
 }
 
 async function notifyCustomerStaffReply(supportRequest, staff, replyText) {
-    const staffName = staff?.fullname || staff?.email || supportRequest.staffReplyByName || 'Nhân viên Mộc Xoa';
-    const title = 'Phản hồi từ Mộc Xoa';
+    const staffName = staff?.fullname || staff?.email || supportRequest.staffReplyByName || 'Nhân viên Healthcare';
+    const title = 'Phản hồi từ Healthcare';
     const message = replyText.trim();
 
     await createSupportCustomerNotification({
@@ -122,9 +122,9 @@ async function notifyCustomerStaffReply(supportRequest, staff, replyText) {
     if (supportRequest.email) {
         sendSupportCustomerEmail({
             to: supportRequest.email,
-            subject: `[Mộc Xoa] Phản hồi yêu cầu ${supportRequest.requestCode}`,
+            subject: `[Healthcare] Phản hồi yêu cầu ${supportRequest.requestCode}`,
             html: `
-                <h2>Mộc Xoa đã phản hồi yêu cầu của bạn</h2>
+                <h2>Healthcare đã phản hồi yêu cầu của bạn</h2>
                 <p><strong>Mã yêu cầu:</strong> ${supportRequest.requestCode}</p>
                 <p><strong>Nhân viên:</strong> ${staffName}</p>
                 <p><strong>Nội dung phản hồi:</strong></p>
@@ -135,7 +135,7 @@ async function notifyCustomerStaffReply(supportRequest, staff, replyText) {
 }
 
 async function notifyCustomerRequestResolved(supportRequest, staff) {
-    const staffName = staff?.fullname || staff?.email || 'Nhân viên Mộc Xoa';
+    const staffName = staff?.fullname || staff?.email || 'Nhân viên Healthcare';
     const statusLabel = SUPPORT_STATUS_LABELS.resolved;
     const title = 'Yêu cầu đã được giải quyết';
     const message = `Mã ${supportRequest.requestCode} đã được xử lý xong. Vui lòng xác nhận kết quả hỗ trợ trong mục "Yêu cầu hỗ trợ của tôi".`;
@@ -152,7 +152,7 @@ async function notifyCustomerRequestResolved(supportRequest, staff) {
     if (supportRequest.email) {
         sendSupportCustomerEmail({
             to: supportRequest.email,
-            subject: `[Mộc Xoa] ${supportRequest.requestCode} đã được giải quyết`,
+            subject: `[Healthcare] ${supportRequest.requestCode} đã được giải quyết`,
             html: `
                 <h2>Yêu cầu hỗ trợ đã được giải quyết</h2>
                 <p><strong>Mã yêu cầu:</strong> ${supportRequest.requestCode}</p>

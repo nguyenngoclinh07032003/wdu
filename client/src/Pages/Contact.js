@@ -124,7 +124,7 @@ function Contact() {
         }
 
         if (!form.agreeTerms) {
-            toast.error('Vui lòng đồng ý cung cấp thông tin để Mộc Xoa liên hệ hỗ trợ');
+            toast.error('Vui lòng đồng ý cung cấp thông tin để Healthcare liên hệ hỗ trợ');
             return;
         }
 
@@ -147,7 +147,7 @@ function Contact() {
             setForm(INITIAL_FORM);
             setImageFile(null);
             setImagePreview('');
-            toast.success('Mộc Xoa đã nhận được yêu cầu của bạn');
+            toast.success('Healthcare đã nhận được yêu cầu của bạn');
         } catch (error) {
             const status = error?.response?.status;
             if (status === 413) {
@@ -185,10 +185,10 @@ function Contact() {
                         </div>
 
                         <p className={cx('miniLabel')}>HỖ TRỢ KHÁCH HÀNG</p>
-                        <h1>Mộc Xoa luôn sẵn sàng lắng nghe bạn</h1>
+                        <h1>Healthcare luôn sẵn sàng lắng nghe bạn</h1>
                         <p>
-                            Bạn cần tư vấn sản phẩm, hỗ trợ đơn hàng hoặc muốn hợp tác cùng Mộc Xoa? Hãy lựa chọn nội
-                            dung phù hợp hoặc gửi thông tin cho chúng tôi. Đội ngũ Mộc Xoa sẽ phản hồi trong thời gian
+                            Bạn cần tư vấn sản phẩm, hỗ trợ đơn hàng hoặc muốn hợp tác cùng Healthcare? Hãy lựa chọn nội
+                            dung phù hợp hoặc gửi thông tin cho chúng tôi. Đội ngũ Healthcare sẽ phản hồi trong thời gian
                             sớm nhất.
                         </p>
 
@@ -210,7 +210,7 @@ function Contact() {
 
                 <section className={cx('supportNeeds')}>
                     <div className={cx('sectionHeading')}>
-                        <h2>Bạn cần Mộc Xoa hỗ trợ điều gì?</h2>
+                        <h2>Bạn cần Healthcare hỗ trợ điều gì?</h2>
                         <span />
                         <small>Chọn nhu cầu phù hợp để được hỗ trợ nhanh hơn</small>
                     </div>
@@ -233,7 +233,7 @@ function Contact() {
                         <div className={cx('formPanel')}>
                             {submitted ? (
                                 <div className={cx('successBox')}>
-                                    <h2>Mộc Xoa đã nhận được yêu cầu của bạn</h2>
+                                    <h2>Healthcare đã nhận được yêu cầu của bạn</h2>
                                     {lastRequestCode ? (
                                         <p>
                                             Mã yêu cầu của bạn: <strong>{lastRequestCode}</strong>
@@ -257,9 +257,9 @@ function Contact() {
                             ) : (
                                 <>
                                     <div className={cx('panelHeading')}>
-                                        <h2>Gửi lời nhắn đến Mộc Xoa</h2>
+                                        <h2>Gửi lời nhắn đến Healthcare</h2>
                                         <p>
-                                            Hãy cung cấp một số thông tin để đội ngũ Mộc Xoa có thể hỗ trợ bạn chính
+                                            Hãy cung cấp một số thông tin để đội ngũ Healthcare có thể hỗ trợ bạn chính
                                             xác và nhanh chóng hơn.
                                         </p>
                                     </div>
@@ -347,7 +347,7 @@ function Contact() {
                                                 checked={form.agreeTerms}
                                                 onChange={handleChange('agreeTerms')}
                                             />
-                                            <span>Tôi đồng ý cung cấp thông tin để Mộc Xoa liên hệ hỗ trợ.</span>
+                                            <span>Tôi đồng ý cung cấp thông tin để Healthcare liên hệ hỗ trợ.</span>
                                         </label>
 
                                         <button type="submit" className={cx('btnPrimary', 'submitBtn')} disabled={submitting}>
@@ -360,7 +360,7 @@ function Contact() {
 
                         <aside className={cx('directPanel')}>
                             <div className={cx('panelHeading')}>
-                                <h2>Kết nối trực tiếp với Mộc Xoa</h2>
+                                <h2>Kết nối trực tiếp với Healthcare</h2>
                             </div>
 
                             <div className={cx('directCard')}>
@@ -436,14 +436,14 @@ function Contact() {
 
                 <section className={cx('mapSection')}>
                     <div className={cx('sectionHeading')}>
-                        <h2>Tìm Mộc Xoa tại đây</h2>
+                        <h2>Tìm Healthcare tại đây</h2>
                         <span />
                     </div>
 
                     <div className={cx('mapLayout')}>
                         <div className={cx('mapFrame')}>
                             <iframe
-                                title="Bản đồ Mộc Xoa"
+                                title="Bản đồ Healthcare"
                                 src={CONTACT_INFO.mapEmbedUrl}
                                 loading="lazy"
                                 referrerPolicy="no-referrer-when-downgrade"
@@ -452,7 +452,7 @@ function Contact() {
                         </div>
 
                         <div className={cx('mapInfo')}>
-                            <h3>Văn phòng Mộc Xoa</h3>
+                            <h3>Văn phòng Healthcare</h3>
                             <p>{CONTACT_INFO.address}</p>
 
                             <h4>Thời gian làm việc</h4>

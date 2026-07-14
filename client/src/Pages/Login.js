@@ -174,9 +174,9 @@ function LoginUser() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="HealthCare Device" />
+                            <img src={logo} alt="Healthcare" />
                         </span>
-                        <span>HealthCare Device</span>
+                        <span>Healthcare</span>
                     </div>
                     <div className={cx('intro')}>
                         <span className={cx('tag')}>Luôn đặt sức khỏe lên hàng đầu</span>
@@ -247,7 +247,7 @@ function LoginUser() {
                             </div>
                         </div>
                     </div>
-                    <div className={cx('copyright')}>© {new Date().getFullYear()} HealthCare Device.</div>{' '}
+                    <div className={cx('copyright')}>© {new Date().getFullYear()} Healthcare.</div>{' '}
                 </div>
 
                 <div className={cx('authRight')}>
