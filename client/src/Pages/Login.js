@@ -1,14 +1,14 @@
 import classNames from 'classnames/bind';
 import styles from '../Styles/Login.module.scss';
-import request, { requestLoginGoogle } from '../Config/api';
+import request, { requestLoginFacebook, requestLoginGoogle } from '../Config/api';
 import { GoogleLogin } from '@react-oauth/google';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 
 import {
     FaRegUser,
@@ -32,9 +32,11 @@ function LoginUser() {
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [facebookLoading, setFacebookLoading] = useState(false);
 
     const navigate = useNavigate();
-    const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    const facebookAppId = process.env.REACT_APP_FACEBOOK_APP_ID;
 
     const handleLoginUser = async () => {
         try {
@@ -51,7 +53,7 @@ function LoginUser() {
                 remember,
             });
 
-            toast.success(res.data.message || 'Đăng nhập thành công!');
+            toast.success('Đăng nhập thành công!');
 
             const role = res.data?.user?.role;
             const isAdmin = res.data?.user?.isAdmin;
@@ -77,18 +79,86 @@ function LoginUser() {
         if (e.key === 'Enter') handleLoginUser();
     };
 
-    //đăng nhập bằng google
-    const handleSuccess = async (response) => {
-        const { credential } = response; // Nhận ID Token từ Google
+    useEffect(() => {
+        if (!facebookAppId || window.FB) return;
+
+        window.fbAsyncInit = function () {
+            window.FB.init({
+                appId: facebookAppId,
+                cookie: true,
+                xfbml: false,
+                version: 'v20.0',
+            });
+        };
+
+        if (!document.getElementById('facebook-jssdk')) {
+            const script = document.createElement('script');
+            script.id = 'facebook-jssdk';
+            script.src = 'https://connect.facebook.net/vi_VN/sdk.js';
+            script.async = true;
+            script.defer = true;
+            document.body.appendChild(script);
+        }
+    }, [facebookAppId]);
+
+    const handleFacebookResponse = async (response) => {
         try {
-            const res = await requestLoginGoogle(credential);
-            toast.success(res.message);
+            const accessToken = response?.authResponse?.accessToken;
+
+            if (!accessToken) {
+                toast.error('Không nhận được token từ Facebook!');
+                return;
+            }
+
+            await requestLoginFacebook(accessToken);
+            toast.success('Đăng nhập Facebook thành công!');
+            navigate('/');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } catch (error) {
+            const message = error?.response?.data?.message || 'Đăng nhập Facebook thất bại!';
+            toast.error(message);
+        } finally {
+            setFacebookLoading(false);
+        }
+    };
+
+    const handleFacebookLogin = () => {
+        if (!facebookAppId) {
+            toast.error('Facebook App ID chưa được cấu hình!');
+            return;
+        }
+
+        if (!window.FB) {
+            toast.error('Facebook SDK chưa sẵn sàng, vui lòng thử lại sau vài giây!');
+            return;
+        }
+
+        setFacebookLoading(true);
+        window.FB.login((response) => {
+            handleFacebookResponse(response);
+        }, { scope: 'public_profile' });
+    };
+
+    const handleSuccess = async (response) => {
+        const { credential } = response;
+        if (!credential) {
+            toast.error('Không nhận được token từ Google!');
+            return;
+        }
+
+        try {
+            await requestLoginGoogle(credential);
+            toast.success('Đăng nhập Google thành công!');
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
             navigate('/');
         } catch (error) {
             console.error('Login failed', error);
+            const message = error?.response?.data?.message || 'Đăng nhập Google thất bại!';
+            toast.error(message);
         }
     };
 
@@ -104,9 +174,9 @@ function LoginUser() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="Mộ Xoa" />
+                            <img src={logo} alt="HealthCare Device" />
                         </span>
-                        <span>Mộc Xoa</span>
+                        <span>HealthCare Device</span>
                     </div>
                     <div className={cx('intro')}>
                         <span className={cx('tag')}>Luôn đặt sức khỏe lên hàng đầu</span>
@@ -251,12 +321,12 @@ function LoginUser() {
                                     <GoogleOAuthProvider clientId={googleClientId}>
                                         <GoogleLogin
                                             onSuccess={handleSuccess}
-                                            onError={() => console.log('Login Failed')}
+                                            onError={() => toast.error('Đăng nhập Google thất bại!')}
                                             theme="outline"
                                             size="large"
                                             text="signin_with"
                                             shape="pill"
-                                            width="100%"
+                                            width="240"
                                         />
                                     </GoogleOAuthProvider>
                                 </div>
@@ -264,9 +334,14 @@ function LoginUser() {
                                 <div className={cx('googleError')}>Google OAuth client ID chưa được cấu hình.</div>
                             )}
 
-                            <button type="button" className={cx('socialBtn')}>
+                            <button
+                                type="button"
+                                className={cx('socialBtn')}
+                                disabled={facebookLoading}
+                                onClick={handleFacebookLogin}
+                            >
                                 <FaFacebookF className={cx('facebook')} />
-                                Facebook
+                                {facebookLoading ? 'Đang đăng nhập...' : 'Facebook'}
                             </button>
                         </div>
                         <div className={cx('authFooter')}>

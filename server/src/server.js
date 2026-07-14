@@ -70,6 +70,20 @@ app.use(
 
 app.use('/uploads', express.static('uploads'));
 
+const missingUploadPlaceholder = `
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="No image">
+  <rect width="640" height="640" rx="56" fill="#f4f9ef"/>
+  <circle cx="320" cy="246" r="78" fill="#dcefd2"/>
+  <path d="M164 458c42-74 88-111 139-111 38 0 69 21 94 63 15-22 34-33 58-33 35 0 70 27 105 81H164Z" fill="#b8d7a8"/>
+  <rect x="96" y="96" width="448" height="448" rx="42" fill="none" stroke="#c8dfbd" stroke-width="18"/>
+  <text x="320" y="548" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#5f7660">No image</text>
+</svg>`;
+
+app.get(/^\/uploads\/.+/, (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.type('image/svg+xml').send(missingUploadPlaceholder.trim());
+});
+
 route(app);
 connectDB();
 startReminderMailJob();

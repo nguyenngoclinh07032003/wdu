@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationDot, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { faFacebookF, faInstagram, faYoutube } from '@fortawesome/free-brands-svg-icons';
 import { CONTACT_INFO } from '../constants/contactInfo';
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 
 const cx = classNames.bind(styles);
 

@@ -1,7 +1,7 @@
 import classNames from 'classnames/bind';
 import styles from '../Styles/Login.module.scss';
 import request from '../Config/api';
-import logo from '../assests/logo/logoxoa.jpg';
+import logo from '../assests/logo/Logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
@@ -127,9 +127,9 @@ function RegisterUser() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="Mộc Xoa" />
+                            <img src={logo} alt="HealthCare Device" />
                         </span>
-                        <span>Mộc Xoa</span>
+                        <span>HealthCare Device</span>
                     </div>
 
                     <div className={cx('intro')}>

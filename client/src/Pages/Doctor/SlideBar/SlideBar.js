@@ -11,7 +11,7 @@ import {
 import request from '../../../Config/api';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
-import logo from '../../../assests/logo/logoxoa.jpg';
+import logo from '../../../assests/logo/Logo.png';
 
 const cx = classNames.bind(styles);
 
@@ -71,7 +71,7 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                 </div>
 
                 <div className={cx('brandText')}>
-                    <h3>Mộc Xoa</h3>
+                    <h3>HealthCare Device</h3>
                     <span>Doctor Panel</span>
                 </div>
             </div>

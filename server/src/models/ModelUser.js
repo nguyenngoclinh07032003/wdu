@@ -12,18 +12,22 @@ const ModelUser = new Schema({
     password: {
         type: String,
         required: function () {
-            return !this.isGoogleAccount;
+            return !this.isGoogleAccount && !this.isFacebookAccount;
         },
     },
 
     phone: {
         type: Number,
         required: function () {
-            return !this.isGoogleAccount;
+            return !this.isGoogleAccount && !this.isFacebookAccount;
         },
     },
 
     isGoogleAccount: {
+        type: Boolean,
+        default: false,
+    },
+    isFacebookAccount: {
         type: Boolean,
         default: false,
     },

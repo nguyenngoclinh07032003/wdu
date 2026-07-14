@@ -21,6 +21,7 @@ const upload = multer({ storage: storage });
 router.post('/api/register', ControllerUser.Register);
 router.post('/api/login', ControllerUser.Login);
 router.post('/api/google-login', ControllerUser.GoogleLogin);
+router.post('/api/facebook-login', ControllerUser.FacebookLogin);
 
 router.get('/api/auth', ControllerJWT.verifyToken, ControllerUser.GetUser);
 

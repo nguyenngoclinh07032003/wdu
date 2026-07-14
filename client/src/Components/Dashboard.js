@@ -264,7 +264,6 @@ function Dashboard() {
 
                     <button className={cx('bellBtn')}>
                         <FontAwesomeIcon icon={faBell} />
-                        <span></span>
                     </button>
                 </div>
             </div>
