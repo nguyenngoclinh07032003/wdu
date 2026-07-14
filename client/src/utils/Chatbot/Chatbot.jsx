@@ -10,10 +10,52 @@ import { canUseCustomerAsk } from '../../utils/canUseCustomerAsk';
 import AImage from '../../assests/imgs/logoai2.png';
 import DOMPurify from 'dompurify';
 
+const LAUNCHER_SIZE = 72;
+const LAUNCHER_MARGIN = 12;
+
+const clampLauncherPosition = (position) => {
+    if (typeof window === 'undefined') return position;
+
+    const maxX = Math.max(LAUNCHER_MARGIN, window.innerWidth - LAUNCHER_SIZE - LAUNCHER_MARGIN);
+    const maxY = Math.max(LAUNCHER_MARGIN, window.innerHeight - LAUNCHER_SIZE - LAUNCHER_MARGIN);
+
+    return {
+        x: Math.min(maxX, Math.max(LAUNCHER_MARGIN, position.x)),
+        y: Math.min(maxY, Math.max(LAUNCHER_MARGIN, position.y)),
+    };
+};
+
+const getDefaultLauncherPosition = () => {
+    if (typeof window === 'undefined') return { x: 24, y: 24 };
+
+    return {
+        x: Math.max(LAUNCHER_MARGIN, window.innerWidth - LAUNCHER_SIZE - 24),
+        y: Math.max(LAUNCHER_MARGIN, window.innerHeight - LAUNCHER_SIZE - 24),
+    };
+};
+
+const getStoredLauncherPosition = () => {
+    if (typeof window === 'undefined') return getDefaultLauncherPosition();
+
+    try {
+        const stored = JSON.parse(localStorage.getItem('chat_launcher_position') || 'null');
+
+        if (stored && Number.isFinite(stored.x) && Number.isFinite(stored.y)) {
+            return clampLauncherPosition(stored);
+        }
+    } catch (error) {
+        localStorage.removeItem('chat_launcher_position');
+    }
+
+    return getDefaultLauncherPosition();
+};
+
 const Chatbot = () => {
     const navigate = useNavigate();
     const { dataUser } = useStore();
     const [isOpen, setIsOpen] = useState(false);
+    const [launcherPosition, setLauncherPosition] = useState(getStoredLauncherPosition);
+    const [isDraggingLauncher, setIsDraggingLauncher] = useState(false);
     const [messages, setMessages] = useState([
         {
             text:
@@ -58,6 +100,11 @@ const Chatbot = () => {
 
     const messagesEndRef = useRef(null);
     const chatbotRef = useRef(null);
+    const launcherRef = useRef(null);
+    const launcherPositionRef = useRef(launcherPosition);
+    const launcherDragRef = useRef(null);
+    const launcherWasDraggedRef = useRef(false);
+    const suppressNextLauncherClickRef = useRef(false);
 
     const greetingText = useMemo(() => {
         const hour = new Date().getHours();
@@ -79,8 +126,30 @@ const Chatbot = () => {
     }, [messages, isLoading]);
 
     useEffect(() => {
+        launcherPositionRef.current = launcherPosition;
+    }, [launcherPosition]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setLauncherPosition((prev) => {
+                const next = clampLauncherPosition(prev);
+                localStorage.setItem('chat_launcher_position', JSON.stringify(next));
+                return next;
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
         const handleClickOutside = (event) => {
-            if (isOpen && chatbotRef.current && !chatbotRef.current.contains(event.target)) {
+            if (
+                isOpen &&
+                chatbotRef.current &&
+                !chatbotRef.current.contains(event.target) &&
+                !launcherRef.current?.contains(event.target)
+            ) {
                 setIsOpen(false);
             }
         };
@@ -219,13 +288,99 @@ const Chatbot = () => {
         setIsOpen(false);
     };
 
+    const handleLauncherPointerDown = (event) => {
+        if (event.button !== undefined && event.button !== 0) return;
+
+        launcherDragRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            initialX: launcherPositionRef.current.x,
+            initialY: launcherPositionRef.current.y,
+        };
+        launcherWasDraggedRef.current = false;
+        setIsDraggingLauncher(true);
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+    };
+
+    const handleLauncherPointerMove = (event) => {
+        const drag = launcherDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+
+        const deltaX = event.clientX - drag.startX;
+        const deltaY = event.clientY - drag.startY;
+
+        if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+            launcherWasDraggedRef.current = true;
+        }
+
+        setLauncherPosition(
+            clampLauncherPosition({
+                x: drag.initialX + deltaX,
+                y: drag.initialY + deltaY,
+            }),
+        );
+    };
+
+    const handleLauncherPointerUp = (event) => {
+        const drag = launcherDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+
+        launcherDragRef.current = null;
+        setIsDraggingLauncher(false);
+        event.currentTarget.releasePointerCapture?.(event.pointerId);
+        localStorage.setItem('chat_launcher_position', JSON.stringify(launcherPositionRef.current));
+
+        if (!launcherWasDraggedRef.current) {
+            suppressNextLauncherClickRef.current = true;
+            setIsOpen((prev) => !prev);
+        }
+    };
+
+    const handleChatButtonClick = (event) => {
+        if (suppressNextLauncherClickRef.current) {
+            event.preventDefault();
+            suppressNextLauncherClickRef.current = false;
+            return;
+        }
+
+        if (launcherWasDraggedRef.current) {
+            event.preventDefault();
+            setTimeout(() => {
+                launcherWasDraggedRef.current = false;
+            }, 0);
+            return;
+        }
+
+        setIsOpen((prev) => !prev);
+    };
+
+    const launcherClassName = [
+        styles.chatLauncher,
+        isDraggingLauncher ? styles.dragging : '',
+        launcherPosition.x < 300 ? styles.alignBubbleLeft : '',
+        launcherPosition.y < 120 ? styles.bubbleBelow : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
+
     return (
         <>
-            {!isOpen && <div className={styles.greetingBubble}>{greetingText}</div>}
+            <div
+                ref={launcherRef}
+                className={launcherClassName}
+                style={{ left: launcherPosition.x, top: launcherPosition.y }}
+                onPointerDown={handleLauncherPointerDown}
+                onPointerMove={handleLauncherPointerMove}
+                onPointerUp={handleLauncherPointerUp}
+                onPointerCancel={handleLauncherPointerUp}
+            >
+                {!isOpen && <div className={styles.greetingBubble}>{greetingText}</div>}
 
-            <button className={styles.chatButton} onClick={() => setIsOpen(!isOpen)} aria-label="Chat">
-                <img src={AImage} alt="Chat AI" className={styles.chatImage} />
-            </button>
+                <button className={styles.chatButton} onClick={handleChatButtonClick} aria-label="Chat">
+                    <img src={AImage} alt="Chat AI" className={styles.chatImage} />
+                </button>
+            </div>
 
             {isOpen && (
                 <div ref={chatbotRef} className={styles.chatbotContainer}>

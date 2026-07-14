@@ -6,7 +6,7 @@ import useDebounce from '../hooks/useDebounce';
 import logo from '../assests/logo/Logo.png';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faCartShopping, faSearch, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faCartShopping, faMoon, faSearch, faSun, faUser } from '@fortawesome/free-solid-svg-icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
@@ -14,11 +14,22 @@ import { useStore } from '../hooks/useStore';
 import { canUseCustomerAsk } from '../utils/canUseCustomerAsk';
 
 const cx = classNames.bind(styles);
+const THEME_STORAGE_KEY = 'healthcare_theme';
+
+const getInitialTheme = () => {
+    if (typeof window === 'undefined') return 'light';
+
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === 'dark' || storedTheme === 'light') return storedTheme;
+
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
 
 function Header() {
     const [show, setShow] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [dataSearch, setDataSearch] = useState([]);
+    const [theme, setTheme] = useState(getInitialTheme);
 
     const navigate = useNavigate();
     const { dataUser, dataCart } = useStore();
@@ -28,6 +39,21 @@ function Header() {
 
     const handleClose = () => setShow(false);
     const handleShowMenu = () => setShow(true);
+    const isDarkMode = theme === 'dark';
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem(THEME_STORAGE_KEY, theme);
+
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+            themeColor.setAttribute('content', isDarkMode ? '#0f172a' : '#ffffff');
+        }
+    }, [theme, isDarkMode]);
+
+    const toggleTheme = () => {
+        setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
+    };
 
     useEffect(() => {
         const fetchSearch = async () => {
@@ -73,13 +99,6 @@ function Header() {
 
     const totalCartItems = dataCart?.[0]?.products?.length || 0;
 
-    const scrollToSection = (sectionId) => {
-        const section = document.getElementById(sectionId);
-
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
     return (
         <header className={cx('wrapper')}>
             <div className={cx('inner')}>
@@ -157,6 +176,16 @@ function Header() {
                         </Link>
                         {totalCartItems > 0 && <span>{totalCartItems}</span>}
                     </div>
+
+                    <button
+                        className={cx('themeToggle')}
+                        type="button"
+                        onClick={toggleTheme}
+                        aria-label={isDarkMode ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                        title={isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}
+                    >
+                        <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
+                    </button>
 
                     {dataUser?._id ? (
                         <div className={cx('userBox')}>
@@ -315,6 +344,13 @@ function Header() {
                                 <Link to="/cart" onClick={handleClose}>
                                     Giỏ hàng
                                 </Link>
+                            </li>
+
+                            <li>
+                                <button className={cx('mobileThemeToggle')} type="button" onClick={toggleTheme}>
+                                    <FontAwesomeIcon icon={isDarkMode ? faSun : faMoon} />
+                                    <span>{isDarkMode ? 'Chế độ sáng' : 'Chế độ tối'}</span>
+                                </button>
                             </li>
 
                             <li>
