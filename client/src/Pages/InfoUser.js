@@ -7,6 +7,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import AccountSidebar from '../Pages/ProfileUser/AccountSidebar';
 import ProfileCard from '../Pages/ProfileUser/ProfileCard';
@@ -21,9 +22,15 @@ import MySupportRequests from '../Pages/ProfileUser/MySupportRequests';
 import { fetchCustomerNotifications } from '../services/customerSupportService';
 
 const cx = classNames.bind(styles);
+const PROFILE_TABS = ['profile', 'orders', 'address', 'reminder', 'review', 'notifications', 'support'];
 
 function InfoUser() {
-    const [activeTab, setActiveTab] = useState('profile');
+    const location = useLocation();
+    const getInitialTab = () => {
+        const tab = new URLSearchParams(location.search).get('tab');
+        return PROFILE_TABS.includes(tab) ? tab : 'profile';
+    };
+    const [activeTab, setActiveTab] = useState(getInitialTab);
 
     const [dataUser, setDataUser] = useState({});
     const [dataPayments, setDataPayments] = useState([]);
@@ -50,6 +57,13 @@ function InfoUser() {
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    useEffect(() => {
+        const tab = new URLSearchParams(location.search).get('tab');
+        if (PROFILE_TABS.includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
 
     const fetchUserInfo = useCallback(async () => {
         try {
