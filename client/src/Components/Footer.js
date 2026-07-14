@@ -96,7 +96,11 @@ function Footer() {
                 <div className={cx('boxItem')}>
                     <div className={cx('brand')}>
                         <img className={cx('logo')} src={logo} alt="logo" />
-                        <p className={cx('desc')}>“XOA dịu nỗi đau – XOA tan áp lực”</p>
+                        <p className={cx('desc')}>
+                            {'“Healthcare kết nối yêu thương,'}
+                            <br />
+                            <span className={cx('descCenter')}>{'nâng niu sức khỏe”'}</span>
+                        </p>
 
                         <div className={cx('social')}>
                             <button
@@ -142,21 +146,21 @@ function Footer() {
                     </ul>
                 </div>
 
-                {/* Cột 3: Sản phẩm */}
+                {/* Cột 3: Dịch vụ & tiện ích */}
                 <div className={cx('boxItem')}>
-                    <h4 className={cx('itemTitle')}>Sản Phẩm</h4>
+                    <h4 className={cx('itemTitle')}>Dịch Vụ & Tiện Ích</h4>
                     <ul className={cx('list')}>
-                        <li className={cx('link')} onClick={() => onPage('/category/dau-gung')}>
-                            Dầu Gừng
+                        <li className={cx('link')} onClick={() => onPage('/hoi-bac-si')}>
+                            Tư vấn bác sĩ
                         </li>
-                        <li className={cx('link')} onClick={() => onPage('/category/nhang-ngai-cuu')}>
-                            Nhang Ngải Cứu
+                        <li className={cx('link')} onClick={() => onPage('/info?tab=reminder')}>
+                            Nhắc lịch chăm sóc
                         </li>
-                        <li className={cx('link')} onClick={() => onPage('/category/ngam-chan-thao-duoc')}>
-                            Ngâm Chân Thảo Dược
+                        <li className={cx('link')} onClick={() => onPage('/contact')}>
+                            Hỗ trợ khách hàng
                         </li>
-                        <li className={cx('link')} onClick={() => onPage('/category/combo')}>
-                            Combo ưu đãi
+                        <li className={cx('link')} onClick={() => onPage('/blog')}>
+                            Bài viết sức khỏe
                         </li>
                     </ul>
                 </div>
@@ -195,7 +199,7 @@ function Footer() {
 
                 {/* Cột 5: Kênh bán hàng */}
                 <div className={cx('boxItem')}>
-                    <h4 className={cx('itemTitle')}>Mua Hàng Tại</h4>
+                    <h4 className={cx('itemTitle')}>Kênh Kết Nối</h4>
                     <ul className={cx('list')}>
                         <li className={cx('link')} onClick={() => window.open('https://shopee.vn', '_blank')}>
                             Shopee
