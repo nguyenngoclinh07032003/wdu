@@ -35,7 +35,7 @@ function About() {
         {
             year: '2026',
             title: 'Khởi đầu & Thử nghiệm',
-            desc: 'Ra mắt thương hiệu "Xoa Xoa", nghiên cứu thị trường, thử nghiệm các sản phẩm chăm sóc sức khỏe tại nhà và xây dựng kênh bán hàng online. Tập trung tiếp cận sinh viên và nhân viên văn phòng.',
+            desc: 'Ra mắt thương hiệu "Healthcare", nghiên cứu thị trường, thử nghiệm các sản phẩm chăm sóc sức khỏe tại nhà và xây dựng kênh bán hàng online. Tập trung tiếp cận sinh viên và nhân viên văn phòng.',
         },
         {
             year: '2027',
@@ -76,13 +76,13 @@ function About() {
                             người chủ động chăm sóc cơ thể, giảm căng thẳng và nâng cao chất lượng cuộc sống mỗi ngày.
                         </p>
 
-                        <div className={cx('heroTextBg')}>"Mộc Xoa"</div>
+                        <div className={cx('heroTextBg')}>"Healthcare"</div>
                     </div>
                 </section>
 
                 <section className={cx('story')}>
                     <div className={cx('storyImage')}>
-                        <img src={groupImage} alt="Đội nhóm Xoa Xoa" className={cx('groupImage')} />
+                        <img src={groupImage} alt="Đội nhóm Healthcare" className={cx('groupImage')} />
                     </div>
 
                     <div className={cx('storyContent')}>
@@ -97,13 +97,12 @@ function About() {
 
                         <p>
                             Nhận thấy thực tế đó, nhóm chúng tôi – gồm những sinh viên đến từ nhiều chuyên ngành như
-                            Công nghệ thông tin, Marketing, Truyền thông và Thiết kế – đã cùng nhau xây dựng dự án “Mộc
-                            Xoa”, với mục tiêu mang đến giải pháp chăm sóc sức khỏe tại nhà đơn giản, tiện lợi và phù
+                            Công nghệ thông tin, Marketing, Truyền thông và Thiết kế – đã cùng nhau xây dựng dự án “Healthcare”, với mục tiêu mang đến giải pháp chăm sóc sức khỏe tại nhà đơn giản, tiện lợi và phù
                             hợp với người trẻ.
                         </p>
 
                         <p>
-                            Thông qua các sản phẩm massage và thảo dược thư giãn, Mộc Xoa mong muốn giúp người dùng giảm
+                            Thông qua các sản phẩm massage và thảo dược thư giãn, Healthcare mong muốn giúp người dùng giảm
                             đau mỏi, thư giãn tinh thần và hình thành thói quen chủ động chăm sóc sức khỏe mỗi ngày.
                         </p>
                     </div>

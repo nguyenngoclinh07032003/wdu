@@ -141,7 +141,7 @@ function MySupportRequests({ initialRequestId, onSelectRequest }) {
 
                     <div style={{ marginTop: 18 }}>
                         <h3 className={cx('pageTitle')} style={{ fontSize: 18 }}>
-                            Trao đổi với Mộc Xoa
+                            Trao đổi với Healthcare
                         </h3>
                         <div className={cx('timeline')}>
                             {(detail.replyTimeline || []).map((item) => (

@@ -224,7 +224,7 @@ async function askQuestion(question, userId = null, sessionId = '', imageFile = 
             <p>
                 📘 Facebook:
                 <a href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer">
-                    Fanpage Mộc Xoa
+                    Fanpage Healthcare
                 </a>
             </p>
 
@@ -361,7 +361,7 @@ async function askQuestion(question, userId = null, sessionId = '', imageFile = 
         const historyText = history
             .reverse()
             .map((item) => {
-                const role = item.role === 'user' ? 'Khách hàng' : 'XoaAI';
+                const role = item.role === 'user' ? 'Khách hàng' : 'Healthcare AI';
                 return `${role}: ${item.content}`;
             })
             .join('\n');
@@ -369,7 +369,7 @@ async function askQuestion(question, userId = null, sessionId = '', imageFile = 
         const products = await findRelevantProducts(cleanQuestion);
 
         const prompt = `
-Bạn là XoaAI - trợ lý tư vấn bán hàng của Mộc Xoa.
+Bạn là Healthcare AI - trợ lý tư vấn bán hàng của Healthcare.
 
 NGUYÊN TẮC:
 - Trả lời thân thiện, tự nhiên, xưng "em" với khách hàng.
@@ -422,7 +422,7 @@ YÊU CẦU OUTPUT:
         console.error('Lỗi khi xử lý câu hỏi:', error);
 
         if (error?.status === 429) {
-            return "<p style='color:orange;'>XoaAI đang tạm quá tải do vượt giới hạn lượt dùng Gemini. Anh/chị vui lòng thử lại sau khoảng 1 phút nhé.</p>";
+            return "<p style='color:orange;'>Healthcare AI đang tạm quá tải do vượt giới hạn lượt dùng Gemini. Anh/chị vui lòng thử lại sau khoảng 1 phút nhé.</p>";
         }
 
         if (error?.status === 503) {

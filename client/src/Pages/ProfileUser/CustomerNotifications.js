@@ -65,7 +65,7 @@ function CustomerNotifications({ onOpenSupportRequest, onUnreadCountChange }) {
             <div className={cx('pageHeader')}>
                 <div>
                     <h2 className={cx('pageTitle')}>Thông báo</h2>
-                    <p className={cx('pageDesc')}>Cập nhật tiến độ xử lý yêu cầu hỗ trợ từ Mộc Xoa.</p>
+                    <p className={cx('pageDesc')}>Cập nhật tiến độ xử lý yêu cầu hỗ trợ từ Healthcare.</p>
                 </div>
                 {notifications.some((item) => !item.isRead) ? (
                     <button type="button" className={cx('btnSecondary')} onClick={handleMarkAllRead}>

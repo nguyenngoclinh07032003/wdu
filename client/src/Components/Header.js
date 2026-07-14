@@ -262,7 +262,7 @@ function Header() {
                 <Offcanvas.Header closeButton>
                     <Offcanvas.Title>
                         <Link to="/" onClick={handleClose}>
-                            <img className={cx('mobileLogo')} src={logo} alt="Healthcare Devices" />
+                            <img className={cx('mobileLogo')} src={logo} alt="Healthcare" />
                         </Link>
                     </Offcanvas.Title>
                 </Offcanvas.Header>

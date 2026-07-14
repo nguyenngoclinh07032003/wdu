@@ -17,7 +17,7 @@ const Chatbot = () => {
     const [messages, setMessages] = useState([
         {
             text:
-                '👋 Chào anh/chị! Em là XoaAI - trợ lý tư vấn 24/7 của Mộc Xoa. ' +
+                '👋 Chào anh/chị! Em là Healthcare AI - trợ lý tư vấn 24/7 của Healthcare. ' +
                 '<br/>' +
                 'Anh/chị cần tư vấn về sản phẩm nào hoặc có câu hỏi gì không ạ?' +
                 '<br/>' +

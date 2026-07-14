@@ -86,7 +86,7 @@ function AskStaff() {
                         <div>
                             <h1>Hỏi nhân viên</h1>
                             <p>
-                                Gửi câu hỏi về đơn hàng, sản phẩm, vận chuyển. Nhân viên Mộc Xoa sẽ trả lời bạn.
+                                Gửi câu hỏi về đơn hàng, sản phẩm, vận chuyển. Nhân viên Healthcare sẽ trả lời bạn.
                             </p>
                         </div>
                         {!activeChatId ? (

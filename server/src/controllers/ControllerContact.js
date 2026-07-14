@@ -39,7 +39,7 @@ const ControllerContact = {
             }
 
             if (!agreeTerms) {
-                return res.status(400).json({ message: 'Vui lòng đồng ý cung cấp thông tin để Mộc Xoa liên hệ hỗ trợ' });
+                return res.status(400).json({ message: 'Vui lòng đồng ý cung cấp thông tin để Healthcare liên hệ hỗ trợ' });
             }
 
             const needsOrderCode = supportType === 'order-support' || supportType === 'return-warranty';
@@ -83,7 +83,7 @@ const ControllerContact = {
                     : process.env.CUSTOMER_EMAIL || process.env.EMAIL_USER || 'linhnnhe171195@fpt.edu.vn';
 
             const mailBody = `
-                <h2>Yêu cầu hỗ trợ mới từ website Mộc Xoa</h2>
+                <h2>Yêu cầu hỗ trợ mới từ website Healthcare</h2>
                 <p><strong>Mã yêu cầu:</strong> ${requestCode}</p>
                 <p><strong>Họ và tên:</strong> ${fullName}</p>
                 <p><strong>Số điện thoại:</strong> ${phone}</p>
@@ -120,7 +120,7 @@ const ControllerContact = {
             });
 
             return res.status(200).json({
-                message: 'Mộc Xoa đã nhận được yêu cầu của bạn',
+                message: 'Healthcare đã nhận được yêu cầu của bạn',
                 requestCode: supportRequest.requestCode,
             });
         } catch (error) {

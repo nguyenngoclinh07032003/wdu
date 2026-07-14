@@ -79,7 +79,7 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar, supportPendingCount
                 </div>
 
                 <div className={cx('brandText')}>
-                    <h3>Mộc Xoa</h3>
+                    <h3>Healthcare</h3>
                     <span>Staff Panel</span>
                 </div>
             </div>
@@ -172,7 +172,7 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar, supportPendingCount
                 </div>
             </div>
 
-            <div className={cx('copyright')}>© {new Date().getFullYear()} HealthCare Device</div>
+            <div className={cx('copyright')}>© {new Date().getFullYear()} Healthcare</div>
         </div>
     );
 }

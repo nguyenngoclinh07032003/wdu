@@ -192,8 +192,8 @@ function ShipperDashboard() {
     return (
         <div className={cx('wrapper')}>
             <aside className={cx('sidebar')}>
-                <img src={logo} alt="HealthCare Device" className={cx('logo')} />
-                <h2 className={cx('logo')}>Mộc Xoa</h2>
+                <img src={logo} alt="Healthcare" className={cx('logo')} />
+                <h2 className={cx('logo')}>Healthcare</h2>
 
                 <div className={cx('profile')}>
                     <div className={cx('profileTop')}>
@@ -271,7 +271,7 @@ function ShipperDashboard() {
                     <button className={cx({ active: activeTab === 'games' })} onClick={() => setActiveTab('games')}>
                         <FaGamepad /> Games
                     </button>
-                    <div className={cx('copyright')}>© {new Date().getFullYear()} HealthCare Device</div>{' '}
+                    <div className={cx('copyright')}>© {new Date().getFullYear()} Healthcare</div>{' '}
                 </nav>
             </aside>
 

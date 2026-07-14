@@ -121,9 +121,9 @@ function ForgotPassword() {
                 <div className={cx('authLeft')}>
                     <div className={cx('brand')}>
                         <span className={cx('brandLogo')}>
-                            <img src={logo} alt="HealthCare Device" />
+                            <img src={logo} alt="Healthcare" />
                         </span>
-                        <span>HealthCare Device</span>
+                        <span>Healthcare</span>
                     </div>
                     <div className={cx('intro')}>
                         <span className={cx('tag')}>Khôi phục tài khoản an toàn</span>
@@ -193,7 +193,7 @@ function ForgotPassword() {
                             </div>
                         </div>
                     </div>
-                    <div className={cx('copyright')}>© {new Date().getFullYear()} HealthCare Device.</div>{' '}
+                    <div className={cx('copyright')}>© {new Date().getFullYear()} Healthcare.</div>{' '}
                 </div>
 
                 <div className={cx('authRight')}>

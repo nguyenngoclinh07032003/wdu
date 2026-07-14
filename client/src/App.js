@@ -23,7 +23,7 @@ function MaintenancePage() {
                 <p>Server hiện đang tạm dừng để nâng cấp hệ thống. Vui lòng quay lại sau ít phút.</p>
 
                 <div className="maintenance-info">
-                    <strong>Mộc Xoa Store</strong>
+                    <strong>Healthcare</strong>
                     <span>Cảm ơn quý khách đã kiên nhẫn chờ đợi ❤️</span>
                 </div>
             </div>
