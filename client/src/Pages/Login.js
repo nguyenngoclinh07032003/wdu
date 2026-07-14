@@ -226,7 +226,7 @@ function LoginUser() {
                                 <span></span>
                             </div>
 
-                            <h3>Smart Xoa AI</h3>
+                            <h3>Smart HealthCare AI</h3>
 
                             <div className={cx('healthLine')}>
                                 <svg viewBox="0 0 320 100">

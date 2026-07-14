@@ -15,11 +15,11 @@ import {
     pickCheckoutAddress,
     formatAddressText,
 } from '../services/addressService';
-import { FaTruck, FaMoneyCheckAlt, FaUniversity, FaHandHoldingUsd } from 'react-icons/fa';
+import { FaTruck, FaMoneyCheckAlt, FaHandHoldingUsd } from 'react-icons/fa';
 
 const cx = classNames.bind(styles);
 
-const SHIPPING_FEE = Number(process.env.ORDER_SHIPPING_FEE) || 30000;
+const SHIPPING_FEE = Number(process.env.REACT_APP_ORDER_SHIPPING_FEE || process.env.ORDER_SHIPPING_FEE) || 30000;
 const MANUAL_ADDRESS_VALUE = 'manual';
 
 function Payments() {
@@ -254,7 +254,7 @@ function Payments() {
                 finalTotal,
             };
 
-            if (paymentMethod === 'Momo') {
+            if (paymentMethod === 'MOMO') {
                 saveLastOrderInfo();
 
                 const res = await request.post('/api/payment', payload);
@@ -435,17 +435,17 @@ function Payments() {
                         </div>
 
                         <div className={cx('paymentList')}>
-                            <label className={cx('paymentCard', { active: paymentMethod === 'Momo' })}>
+                            <label className={cx('paymentCard', { active: paymentMethod === 'MOMO' })}>
                                 <div className={cx('paymentLeft')}>
                                     <input
                                         type="radio"
                                         name="paymentMethod"
-                                        value="Momo"
-                                        checked={paymentMethod === 'Momo'}
+                                        value="MOMO"
+                                        checked={paymentMethod === 'MOMO'}
                                         onChange={handlePaymentMethodChange}
                                     />
                                     <div>
-                                        <h4>Credit/Debit Wallet</h4>
+                                        <h4>MoMo Wallet</h4>
                                         <p>Thanh toán qua Momo</p>
                                     </div>
                                 </div>

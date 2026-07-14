@@ -19,7 +19,7 @@ import {
 
 const cx = classNames.bind(styles);
 
-const SHIPPING_FEE = Number(process.env.ORDER_SHIPPING_FEE) || 30000;
+const SHIPPING_FEE = Number(process.env.REACT_APP_ORDER_SHIPPING_FEE || process.env.ORDER_SHIPPING_FEE) || 30000;
 
 function PaymentSuccess() {
     const [dataPayment, setDataPayment] = useState([]);

@@ -274,8 +274,20 @@ class ControllerPayments {
             const redirectUrl = process.env.MOMO_REDIRECT_URL;
             const ipnUrl = process.env.MOMO_IPN_URL;
 
-            if (!partnerCode || !accessKey || !secretKey || !redirectUrl || !ipnUrl) {
-                return res.status(500).json({ message: 'Thiếu cấu hình MOMO trong .env' });
+            const missingMomoConfig = [
+                ['MOMO_PARTNER_CODE', partnerCode],
+                ['MOMO_ACCESS_KEY', accessKey],
+                ['MOMO_SECRET_KEY', secretKey],
+                ['MOMO_REDIRECT_URL', redirectUrl],
+                ['MOMO_IPN_URL', ipnUrl],
+            ]
+                .filter(([, value]) => !String(value || '').trim())
+                .map(([key]) => key);
+
+            if (missingMomoConfig.length > 0) {
+                return res.status(500).json({
+                    message: `Thiếu cấu hình MOMO trong .env: ${missingMomoConfig.join(', ')}`,
+                });
             }
 
             const requestId = `${partnerCode}_${Date.now()}`;
@@ -323,7 +335,9 @@ class ControllerPayments {
                 lang: 'vi',
             };
 
-            const response = await axios.post('https://payment.momo.vn/v2/gateway/api/create', requestBody, {
+            const momoEndpoint = process.env.MOMO_ENDPOINT_URL || 'https://test-payment.momo.vn/v2/gateway/api/create';
+
+            const response = await axios.post(momoEndpoint, requestBody, {
                 headers: { 'Content-Type': 'application/json' },
                 timeout: 15000,
             });
@@ -468,10 +482,51 @@ class ControllerPayments {
     //------------------------------MOMO------------------------------
     checkData = async (req, res) => {
         try {
-            const { orderInfo, amount, extraData, resultCode, orderId, requestId, signature } = req.query;
+            const callbackData = { ...req.query, ...req.body };
+            const isBrowserRedirect = req.method === 'GET';
+            const redirectBase = process.env.REACT_APP_URL_DOMAIN || process.env.REACT_APP_URL;
 
-            if (resultCode !== '0') {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments`);
+            const redirectTo = (path) => {
+                if (!redirectBase) {
+                    return res.status(500).json({ message: 'Missing frontend URL config' });
+                }
+
+                return res.redirect(`${redirectBase}${path}`);
+            };
+
+            const finishSuccess = (payload = {}) => {
+                if (isBrowserRedirect) {
+                    return redirectTo('/paymentsuccess');
+                }
+
+                return res.status(200).json({ success: true, ...payload });
+            };
+
+            const finishFailure = (message, statusCode = 400) => {
+                if (isBrowserRedirect) {
+                    return redirectTo(`/payments?error=${encodeURIComponent(message)}`);
+                }
+
+                return res.status(statusCode).json({ success: false, message });
+            };
+
+            const {
+                orderInfo,
+                amount,
+                extraData = '',
+                resultCode,
+                orderId,
+                requestId,
+                signature,
+                message = '',
+                orderType = '',
+                payType = '',
+                responseTime = '',
+                transId = '',
+            } = callbackData;
+
+            if (String(resultCode) !== '0') {
+                return finishFailure('MOMO payment failed');
             }
 
             if (!orderInfo || !orderId || !requestId || !amount || !signature) {
@@ -482,20 +537,24 @@ class ControllerPayments {
             const accessKey = process.env.MOMO_ACCESS_KEY;
             const secretKey = process.env.MOMO_SECRET_KEY;
 
+            if (!partnerCode || !accessKey || !secretKey) {
+                return res.status(500).json({ message: 'Missing MOMO config' });
+            }
+
             const rawSignature =
                 `accessKey=${accessKey}` +
                 `&amount=${amount}` +
-                `&extraData=${extraData || ''}` +
-                `&message=${req.query.message || ''}` +
+                `&extraData=${extraData}` +
+                `&message=${message}` +
                 `&orderId=${orderId}` +
                 `&orderInfo=${orderInfo}` +
-                `&orderType=${req.query.orderType || ''}` +
+                `&orderType=${orderType}` +
                 `&partnerCode=${partnerCode}` +
-                `&payType=${req.query.payType || ''}` +
+                `&payType=${payType}` +
                 `&requestId=${requestId}` +
-                `&responseTime=${req.query.responseTime || ''}` +
+                `&responseTime=${responseTime}` +
                 `&resultCode=${resultCode}` +
-                `&transId=${req.query.transId || ''}`;
+                `&transId=${transId}`;
 
             const expectedSignature = crypto.createHmac('sha256', secretKey).update(rawSignature).digest('hex');
 
@@ -509,7 +568,7 @@ class ControllerPayments {
             });
 
             if (existed) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/paymentsuccess`);
+                return finishSuccess({ orderId });
             }
 
             const email = orderInfo;
@@ -517,12 +576,12 @@ class ControllerPayments {
             const userData = await ModelUser.findOne({ email }).lean();
 
             if (!cart || !cart.products?.length) {
-                return res.status(404).json({ message: 'Cart is empty or not found' });
+                return finishFailure('Cart is empty or not found', 404);
             }
 
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`);
+                return finishFailure(voucherError);
             }
 
             let parsedExtraData = {};
@@ -552,7 +611,7 @@ class ControllerPayments {
 
             const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
             if (!voucherResult.ok) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`);
+                return finishFailure(voucherResult.message);
             }
 
             await newPayment.save();
@@ -560,7 +619,7 @@ class ControllerPayments {
 
             this.sendOrderMailAsync(email);
 
-            return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/paymentsuccess`);
+            return finishSuccess({ orderId });
         } catch (error) {
             console.error('checkData error:', error.message);
             return res.status(500).json({ message: 'Internal Server Error' });
