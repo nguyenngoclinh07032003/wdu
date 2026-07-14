@@ -1,6 +1,7 @@
 const ModelUser = require('../models/ModelUser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 const ModelPayment = require('../models/ModelPayment');
 const ForgotPassword = require('../SendMail/ForgotPassword');
@@ -23,7 +24,7 @@ class ControllerUser {
             const dataUser = await ModelUser.findOne({ email });
             if (dataUser) {
                 return res.status(403).json({
-                    message: 'Người Dùng Đã Tồn Tại !!!',
+                    message: 'Người dùng đã tồn tại !!!',
                 });
             }
 
@@ -42,7 +43,7 @@ class ControllerUser {
             await newUser.save();
 
             return res.status(200).json({
-                message: 'Đăng Ký Thành Công !!!',
+                message: 'Đăng ký thành công !!!',
             });
         } catch (error) {
             console.error('Register error:', error);
@@ -65,7 +66,7 @@ class ControllerUser {
             const dataUser = await ModelUser.findOne({ email });
             if (!dataUser) {
                 return res.status(401).json({
-                    message: 'Email Hoặc Mật Khẩu Không Chính Xác !!!',
+                    message: 'Email hoặc mật khẩu không chính xác !!!',
                 });
             }
 
@@ -78,17 +79,17 @@ class ControllerUser {
             const match = await bcrypt.compare(password, dataUser.password);
             if (!match) {
                 return res.status(401).json({
-                    message: 'Email Hoặc Mật Khẩu Không Chính Xác !!!',
+                    message: 'Email hoặc mật khẩu không chính xác !!!',
                 });
             }
 
             const admin = dataUser.isAdmin || false;
 
-            const token = jwt.sign({ email: dataUser.email, admin }, process.env.JWT_SECRET, {
+            const token = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
                 expiresIn: process.env.EXPIRES_IN || '15m',
             });
 
-            const refreshToken = jwt.sign({ email: dataUser.email, admin }, process.env.JWT_SECRET, {
+            const refreshToken = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
                 expiresIn: '30d',
             });
 
@@ -114,7 +115,7 @@ class ControllerUser {
             });
 
             return res.status(200).json({
-                message: 'Đăng Nhập Thành Công !!!',
+                message: 'Đăng nhập thành công !!!',
                 user: {
                     id: dataUser._id,
                     fullname: dataUser.fullname,
@@ -144,10 +145,18 @@ class ControllerUser {
                 });
             }
 
-            const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+            const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
+            if (!googleClientId) {
+                return res.status(500).json({
+                    message: 'Google OAuth client ID chưa được cấu hình !!!',
+                });
+            }
+
+            const client = new OAuth2Client(googleClientId);
             const ticket = await client.verifyIdToken({
                 idToken: credential,
-                audience: process.env.GOOGLE_CLIENT_ID,
+                audience: googleClientId,
             });
             const payload = ticket.getPayload();
 
@@ -185,10 +194,10 @@ class ControllerUser {
             }
 
             const admin = dataUser.isAdmin || false;
-            const token = jwt.sign({ email: dataUser.email, admin }, process.env.JWT_SECRET, {
+            const token = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
                 expiresIn: process.env.EXPIRES_IN || '15m',
             });
-            const refreshToken = jwt.sign({ email: dataUser.email, admin }, process.env.JWT_SECRET, {
+            const refreshToken = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
                 expiresIn: '30d',
             });
 
@@ -233,6 +242,111 @@ class ControllerUser {
             });
         }
     }
+    async FacebookLogin(req, res) {
+        try {
+            const { accessToken } = req.body;
+
+            if (!accessToken) {
+                return res.status(400).json({
+                    message: 'Token Facebook không hợp lệ !!!',
+                });
+            }
+
+            // For local development, the profile request below is enough to validate
+            // that Facebook issued a usable user access token.
+            const profileRes = await axios.get('https://graph.facebook.com/me', {
+                params: {
+                    fields: 'id,name,picture.type(large)',
+                    access_token: accessToken,
+                },
+            });
+
+            const profile = profileRes.data || {};
+            if (!profile.id) {
+                return res.status(400).json({
+                    message: 'Không lấy được thông tin từ Facebook !!!',
+                });
+            }
+
+            const email = profile.email || `${profile.id}@facebook.local`;
+            const fullname = profile.name || email;
+            const avatar = profile.picture?.data?.url || '';
+
+            let dataUser = await ModelUser.findOne({ email });
+
+            if (dataUser && dataUser.isActive === false) {
+                return res.status(403).json({
+                    message: 'Tài khoản của bạn đã bị khóa !!!',
+                });
+            }
+
+            if (!dataUser) {
+                const password = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+                dataUser = new ModelUser({
+                    fullname,
+                    password,
+                    email,
+                    avatar,
+                    surplus: 0,
+                    isActive: true,
+                    isFacebookAccount: true,
+                });
+
+                await dataUser.save();
+            }
+
+            const admin = dataUser.isAdmin || false;
+            const token = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
+                expiresIn: process.env.EXPIRES_IN || '15m',
+            });
+            const refreshToken = jwt.sign({ id: dataUser._id, email: dataUser.email, admin }, process.env.JWT_SECRET, {
+                expiresIn: '30d',
+            });
+
+            res.cookie('Token', token, {
+                httpOnly: true,
+                secure: isProduction,
+                sameSite: isProduction ? 'None' : 'Lax',
+                maxAge: 15 * 60 * 1000,
+            });
+
+            res.cookie('logged', '1', {
+                httpOnly: false,
+                secure: isProduction,
+                sameSite: isProduction ? 'None' : 'Lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: isProduction,
+                sameSite: isProduction ? 'None' : 'Lax',
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.status(200).json({
+                message: 'Đăng nhập Facebook thành công !!!',
+                user: {
+                    id: dataUser._id,
+                    fullname: dataUser.fullname,
+                    email: dataUser.email,
+                    phone: dataUser.phone,
+                    avatar: dataUser.avatar,
+                    surplus: dataUser.surplus,
+                    isAdmin: dataUser.isAdmin,
+                    role: dataUser.role,
+                    isActive: dataUser.isActive,
+                },
+            });
+        } catch (error) {
+            console.error('FacebookLogin error:', error?.response?.data || error.message);
+            return res.status(500).json({
+                message: 'Lỗi khi đăng nhập bằng Facebook !!!',
+            });
+        }
+    }
+
+
 
     async GetUser(req, res) {
         try {
@@ -240,7 +354,7 @@ class ControllerUser {
 
             if (!email) {
                 return res.status(401).json({
-                    message: 'Có Lỗi Xảy Ra !!!',
+                    message: 'Có lỗi xảy ra !!!',
                 });
             }
 
@@ -282,7 +396,7 @@ class ControllerUser {
             });
 
             return res.status(200).json({
-                message: 'Đăng Xuất Thành Công !!!',
+                message: 'Đăng xuất thành công !!!',
             });
         } catch (error) {
             console.error('Logout error:', error);
@@ -317,7 +431,7 @@ class ControllerUser {
             const dataUser = await ModelUser.findOne({ email });
             if (!dataUser) {
                 return res.status(404).json({
-                    message: 'Không Tìm Thấy Người Dùng !!!',
+                    message: 'Không tìm thấy người dùng !!!',
                 });
             }
 
@@ -340,7 +454,7 @@ class ControllerUser {
             );
 
             return res.status(200).json({
-                message: 'Thành Công !!!',
+                message: 'Thành công !!!',
             });
         } catch (error) {
             console.error('ForgotPassword error:', error);
@@ -460,7 +574,7 @@ class ControllerUser {
             await ModelUser.deleteOne({ _id: id });
 
             return res.status(200).json({
-                message: 'Xóa Người Dùng Thành Công !!!',
+                message: 'Xóa người dùng thành công !!!',
             });
         } catch (error) {
             console.error('DeleteUser error:', error);

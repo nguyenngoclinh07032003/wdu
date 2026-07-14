@@ -44,6 +44,7 @@ function route(app) {
     app.post('/api/resetpassword', UserRoute);
     app.get('/api/refresh-token', UserRoute);
     app.post('/api/google-login', UserRoute);
+    app.post('/api/facebook-login', UserRoute);
     app.get('/api/get-all-shipper', UserRoute);
     app.put('/api/assign-order-shipper/:orderId', UserRoute);
     // Payment

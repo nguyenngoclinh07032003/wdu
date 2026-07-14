@@ -28,6 +28,11 @@ export const requestLoginGoogle = async (credential) => {
     return res.data;
 };
 
+export const requestLoginFacebook = async (accessToken) => {
+    const res = await request.post('/api/facebook-login', { accessToken });
+    return res.data;
+};
+
 export const requestGetCart = async () => {
     const res = await request.get('/api/cart');
     return res.data;
