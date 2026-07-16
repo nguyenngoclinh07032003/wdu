@@ -385,7 +385,7 @@ class ControllerPayments {
             const vnpay = new VNPay({
                 tmnCode: process.env.VNPAY_TMN_CODE,
                 secureSecret: process.env.VNPAY_HASH_SECRET,
-                vnpayHost: process.env.VNPAY_HOST || 'https://sandbox.vnpayment.vn',
+                vnpayHost: process.env.VNPAY_HOST || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
                 testMode: true,
                 hashAlgorithm: 'SHA512',
                 loggerFn: ignoreLogger,
@@ -398,7 +398,7 @@ class ControllerPayments {
 
             const vnpayResponse = await vnpay.buildPaymentUrl({
                 vnp_Amount: amounts.total,
-                vnp_IpAddr: req.ip || '127.0.0.1',
+                vnp_IpAddr: (req.ip || '127.0.0.1').toString(),
                 vnp_TxnRef: txnRef,
                 vnp_OrderInfo: String(cart._id),
                 vnp_OrderType: ProductCode.Other,
@@ -406,6 +406,7 @@ class ControllerPayments {
                 vnp_Locale: VnpLocale.VN,
                 vnp_CreateDate: dateFormat(new Date()),
                 vnp_ExpireDate: dateFormat(tomorrow),
+                vnp_SecureHashType: 'SHA512',
             });
 
             return res.status(201).json({ vnpayResponse });
@@ -441,7 +442,9 @@ class ControllerPayments {
 
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`);
+                return res.redirect(
+                    `${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`,
+                );
             }
 
             const userData = await ModelUser.findOne({ email: cart.user }).lean();
@@ -464,7 +467,9 @@ class ControllerPayments {
 
             const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
             if (!voucherResult.ok) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`);
+                return res.redirect(
+                    `${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`,
+                );
             }
 
             await newPayment.save();

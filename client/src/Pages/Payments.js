@@ -9,13 +9,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
-import {
-    getAddresses,
-    getCheckoutAddressId,
-    pickCheckoutAddress,
-    formatAddressText,
-} from '../services/addressService';
-import { FaTruck, FaMoneyCheckAlt, FaHandHoldingUsd } from 'react-icons/fa';
+import { getAddresses, getCheckoutAddressId, pickCheckoutAddress, formatAddressText } from '../services/addressService';
+import { FaTruck, FaMoneyCheckAlt, FaHandHoldingUsd, FaUniversity } from 'react-icons/fa';
 
 const cx = classNames.bind(styles);
 
@@ -374,8 +369,8 @@ function Payments() {
                                 </select>
 
                                 <p className={cx('savedAddressHint')}>
-                                    Bạn có thể chọn &quot;Nhập địa chỉ thủ công&quot; rồi tự sửa họ tên, số điện
-                                    thoại và địa chỉ bên dưới.
+                                    Bạn có thể chọn &quot;Nhập địa chỉ thủ công&quot; rồi tự sửa họ tên, số điện thoại
+                                    và địa chỉ bên dưới.
                                 </p>
                             </div>
                         )}
@@ -453,7 +448,7 @@ function Payments() {
                                 <FaMoneyCheckAlt className={cx('paymentIcon')} />
                             </label>
 
-                            {/* <label className={cx('paymentCard', { active: paymentMethod === 'VNPAY' })}>
+                            <label className={cx('paymentCard', { active: paymentMethod === 'VNPAY' })}>
                                 <div className={cx('paymentLeft')}>
                                     <input
                                         type="radio"
@@ -469,7 +464,7 @@ function Payments() {
                                 </div>
 
                                 <FaUniversity className={cx('paymentIcon')} />
-                            </label> */}
+                            </label>
 
                             <label className={cx('paymentCard', { active: paymentMethod === 'COD' })}>
                                 <div className={cx('paymentLeft')}>
