@@ -73,8 +73,8 @@ const addressSchema = new mongoose.Schema(
     },
 );
 
-// index tối ưu query
-addressSchema.index({ user: 1 });
+// index tối ưu query — `user` already has index: true above
+// addressSchema.index({ user: 1 });
 
 // tự động set địa chỉ đầu tiên thành mặc định
 addressSchema.pre('save', async function () {

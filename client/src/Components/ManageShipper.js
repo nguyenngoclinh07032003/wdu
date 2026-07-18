@@ -17,8 +17,32 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ShipperDeliveryMap from './ShipperDeliveryMap';
+import { resolveDeliveryStatus, getDeliveryStatusInfo } from '../utils/deliveryStatus';
 
 const cx = classNames.bind(styles);
+
+const ACTIVE_DELIVERY = [
+    'ASSIGNED',
+    'ACCEPTED',
+    'DELIVERING',
+    'FIRST_DELIVERY_FAILED',
+    'REDELIVERING',
+    'RETURNING',
+];
+
+function isActiveDeliveryOrder(item) {
+    const ds = resolveDeliveryStatus(item);
+    if (ds) return ACTIVE_DELIVERY.includes(ds);
+    const status = String(item?.status || '').toLowerCase();
+    return ['pending', 'confirmed', 'shipping', 'picking', 'failed', 'returning'].includes(status);
+}
+
+function isCompletedDeliveryOrder(item) {
+    const ds = resolveDeliveryStatus(item);
+    if (ds) return ds === 'DELIVERED' || ds === 'DELIVERED_AFTER_RETRY';
+    const status = String(item?.status || '').toLowerCase();
+    return status === 'completed' || item?.tinhtrang === true;
+}
 
 function ManageShipper() {
     const [shippers, setShippers] = useState([]);
@@ -65,31 +89,26 @@ function ManageShipper() {
     }, [shippers]);
 
     const pendingDeliveries = useMemo(() => {
-        return orders.filter((item) => {
-            const status = String(item?.status || '').toLowerCase();
-            return status === 'pending' || status === 'confirmed' || status === 'shipping';
-        }).length;
+        return orders.filter((item) => isActiveDeliveryOrder(item) && item?.shipperId).length;
     }, [orders]);
 
     const completedOrders = useMemo(() => {
-        return orders.filter((item) => {
-            const status = String(item?.status || '').toLowerCase();
-            return status === 'completed' || item?.tinhtrang === true;
-        }).length;
+        return orders.filter((item) => isCompletedDeliveryOrder(item)).length;
     }, [orders]);
 
     const successRate = useMemo(() => {
-        if (!orders.length) return 0;
-        return ((completedOrders / orders.length) * 100).toFixed(1);
+        const failedOrReturned = orders.filter((item) => {
+            const ds = resolveDeliveryStatus(item);
+            if (ds) return ['RETURNING', 'RETURNED', 'FIRST_DELIVERY_FAILED'].includes(ds);
+            return ['failed', 'returning', 'returned'].includes(String(item?.status || '').toLowerCase());
+        }).length;
+        const done = completedOrders + failedOrReturned;
+        if (!done) return 0;
+        return ((completedOrders / done) * 100).toFixed(1);
     }, [completedOrders, orders]);
 
     const urgentOrders = useMemo(() => {
-        return orders
-            .filter((item) => {
-                const status = String(item?.status || '').toLowerCase();
-                return status === 'pending' || status === 'confirmed' || status === 'shipping';
-            })
-            .slice(0, 3);
+        return orders.filter((item) => isActiveDeliveryOrder(item)).slice(0, 3);
     }, [orders]);
 
     const getInitials = (name) => {
@@ -249,11 +268,10 @@ function ManageShipper() {
                                     onClick={() => {
                                         const confirmedOrders = orders.filter((item) => {
                                             const status = String(item?.status || '').toLowerCase();
-
-                                            return status === 'confirmed';
+                                            return !item?.shipperId && status === 'confirmed';
                                         });
 
-                                        toast.info(`Có ${confirmedOrders.length} đơn đã xác nhận`);
+                                        toast.info(`Có ${confirmedOrders.length} đơn chờ gán shipper`);
                                     }}
                                 >
                                     <FontAwesomeIcon icon={faFilter} />
@@ -390,7 +408,7 @@ function ManageShipper() {
                                 <div key={item._id} className={cx('alertItem')}>
                                     <strong>#{getOrderCode(item)}</strong>
                                     <p>{getOrderProductName(item)}</p>
-                                    <span>{item?.status || 'Đang xử lý'}</span>
+                                    <span>{getDeliveryStatusInfo(item).label}</span>
                                 </div>
                             ))
                         ) : (

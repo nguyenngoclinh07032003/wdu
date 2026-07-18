@@ -176,7 +176,7 @@ function Dashboard() {
                 value: Number(dashboard.totalOrders || 0).toLocaleString('vi-VN'),
                 icon: faCartShopping,
                 tone: 'orange',
-                sub: 'Không tính đơn đã hủy',
+                sub: `${dashboard.totalAllOrders || 0} đơn tổng (không hủy)`,
                 trend: 'neutral',
             },
             {

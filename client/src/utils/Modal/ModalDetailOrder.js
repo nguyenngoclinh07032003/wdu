@@ -1,6 +1,7 @@
 import classNames from 'classnames/bind';
 import styles from '../../Styles/InfoUser.module.scss';
 import { normalizeOrderStatus, getOrderStatusInfo } from '../../utils/orderStatus';
+import { resolveDeliveryStatus } from '../../utils/deliveryStatus';
 import {
     FaRegClock,
     FaCircleCheck,
@@ -41,7 +42,12 @@ function OrderDetailModal({ order, onClose }) {
     };
 
     const status = normalizeOrderStatus(order);
-    const statusInfo = getOrderStatusInfo(status);
+    const statusInfo = getOrderStatusInfo(order);
+    const deliveryStatus = resolveDeliveryStatus(order);
+    const publicFailureReason =
+        deliveryStatus === 'RETURNING' || deliveryStatus === 'RETURNED'
+            ? order.secondFailureReason || order.firstFailureReason
+            : order.firstFailureReason;
 
     const getTimelineSteps = () => {
         if (status === 'cancelled') {
@@ -59,6 +65,89 @@ function OrderDetailModal({ order, onClose }) {
                     time: formatShortDateTime(order?.cancelledAt || order?.updatedAt),
                 },
             ];
+        }
+
+        // Timeline theo deliveryStatus khi đã gán shipper
+        if (deliveryStatus) {
+            const steps = [
+                {
+                    key: 'pending',
+                    label: 'Chờ xử lý',
+                    icon: <FaRegClock />,
+                    time: formatShortDateTime(order?.createdAt),
+                },
+                {
+                    key: 'ASSIGNED',
+                    label: 'Đã giao shipper',
+                    icon: <FaCircleCheck />,
+                    time: formatShortDateTime(order?.assignedAt || order?.confirmedAt || order?.updatedAt),
+                },
+                {
+                    key: 'DELIVERING',
+                    label: 'Đang giao hàng',
+                    icon: <FaTruckFast />,
+                    time:
+                        ['DELIVERING', 'FIRST_DELIVERY_FAILED', 'REDELIVERING', 'DELIVERED', 'DELIVERED_AFTER_RETRY', 'RETURNING', 'RETURNED'].includes(
+                            deliveryStatus,
+                        )
+                            ? formatShortDateTime(order?.shippingAt || order?.updatedAt)
+                            : 'Chưa có',
+                },
+            ];
+
+            if (
+                ['FIRST_DELIVERY_FAILED', 'REDELIVERING', 'DELIVERED_AFTER_RETRY', 'RETURNING', 'RETURNED'].includes(
+                    deliveryStatus,
+                )
+            ) {
+                steps.push({
+                    key: 'FIRST_DELIVERY_FAILED',
+                    label: 'Giao thất bại lần 1',
+                    icon: <FaTriangleExclamation />,
+                    time: formatShortDateTime(order?.firstFailureTime || order?.failedAt || order?.updatedAt),
+                });
+            }
+
+            if (['REDELIVERING', 'DELIVERED_AFTER_RETRY', 'RETURNING', 'RETURNED'].includes(deliveryStatus)) {
+                steps.push({
+                    key: 'REDELIVERING',
+                    label: 'Đang giao lại',
+                    icon: <FaTruckFast />,
+                    time: formatShortDateTime(order?.redeliveryScheduledAt || order?.updatedAt),
+                });
+            }
+
+            if (deliveryStatus === 'DELIVERED' || deliveryStatus === 'DELIVERED_AFTER_RETRY') {
+                steps.push({
+                    key: deliveryStatus === 'DELIVERED_AFTER_RETRY' ? 'DELIVERED_AFTER_RETRY' : 'DELIVERED',
+                    label:
+                        deliveryStatus === 'DELIVERED_AFTER_RETRY'
+                            ? 'Giao thành công (lần 2)'
+                            : 'Giao thành công',
+                    icon: <FaFlagCheckered />,
+                    time: formatShortDateTime(order?.deliveredAt || order?.completedAt || order?.updatedAt),
+                });
+            }
+
+            if (deliveryStatus === 'RETURNING' || deliveryStatus === 'RETURNED') {
+                steps.push({
+                    key: 'RETURNING',
+                    label: 'Đang hoàn hàng',
+                    icon: <FaRotateLeft />,
+                    time: formatShortDateTime(order?.returningAt || order?.updatedAt),
+                });
+                steps.push({
+                    key: 'RETURNED',
+                    label: 'Đã hoàn hàng',
+                    icon: <FaBoxOpen />,
+                    time:
+                        deliveryStatus === 'RETURNED'
+                            ? formatShortDateTime(order?.returnedAt || order?.updatedAt)
+                            : 'Chưa có',
+                });
+            }
+
+            return steps;
         }
 
         if (status === 'failed') {
@@ -162,7 +251,31 @@ function OrderDetailModal({ order, onClose }) {
     };
 
     const timelineSteps = getTimelineSteps();
-    const currentStepIndex = timelineSteps.findIndex((step) => step.key === status);
+
+    const resolveActiveTimelineKey = () => {
+        if (status === 'cancelled') return 'cancelled';
+        if (!deliveryStatus) return status;
+
+        const map = {
+            ASSIGNED: 'ASSIGNED',
+            ACCEPTED: 'ASSIGNED',
+            DELIVERING: 'DELIVERING',
+            FIRST_DELIVERY_FAILED: 'FIRST_DELIVERY_FAILED',
+            REDELIVERING: 'REDELIVERING',
+            DELIVERED: 'DELIVERED',
+            DELIVERED_AFTER_RETRY: 'DELIVERED_AFTER_RETRY',
+            RETURNING: 'RETURNING',
+            RETURNED: 'RETURNED',
+        };
+        return map[deliveryStatus] || deliveryStatus;
+    };
+
+    const activeKey = resolveActiveTimelineKey();
+    let currentStepIndex = timelineSteps.findIndex((step) => step.key === activeKey);
+    if (currentStepIndex < 0 && deliveryStatus === 'ACCEPTED') {
+        currentStepIndex = timelineSteps.findIndex((step) => step.key === 'ASSIGNED');
+    }
+    if (currentStepIndex < 0) currentStepIndex = 0;
 
     const products = Array.isArray(order?.products) ? order.products : [];
 
@@ -251,6 +364,25 @@ function OrderDetailModal({ order, onClose }) {
                         <strong>Trạng thái:</strong>{' '}
                         <span className={cx('statusBadge', statusInfo.className)}>{statusInfo.text}</span>
                     </p>
+
+                    {publicFailureReason ? (
+                        <p>
+                            <strong>Lý do giao thất bại:</strong> {publicFailureReason}
+                        </p>
+                    ) : null}
+
+                    {order?.redeliveryScheduledAt ? (
+                        <p>
+                            <strong>Thời gian giao lại dự kiến:</strong>{' '}
+                            {formatShortDateTime(order.redeliveryScheduledAt)}
+                        </p>
+                    ) : null}
+
+                    {order?.updatedAt ? (
+                        <p>
+                            <strong>Cập nhật lúc:</strong> {formatShortDateTime(order.updatedAt)}
+                        </p>
+                    ) : null}
                 </div>
 
                 <div className={cx('orderProducts')}>

@@ -3,9 +3,14 @@ server/node_modules
 
 client/.env
 server/.env
+server/src/.env
 
 client/build
 server/uploads
 server/src/uploads
 
 .DS_Store
+*.log
+tmp-smoke-tokens.json
+server/tmp-smoke-tokens.json
+.cursor/

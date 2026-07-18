@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 
 import { toast, ToastContainer } from 'react-toastify';
 import { useStore } from '../../hooks/useStore';
+import { sanitizeHtml } from '../sanitizeHtml';
 
 const cx = classNames.bind(styles);
 
@@ -150,7 +151,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
 
                                 <span id={cx('price')}>{Number(item.price || 0).toLocaleString()} đ</span>
 
-                                <div dangerouslySetInnerHTML={{ __html: item?.description }} />
+                                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(item?.description) }} />
 
                                 <div className={cx('btn-add-to-cart')}>
                                     <div className={cx('form-quantity')}>

@@ -56,6 +56,10 @@ const modelReminder = new Schema(
             type: Date,
             default: null,
         },
+        lastSentAt: {
+            type: Date,
+            default: null,
+        },
     },
 
     {

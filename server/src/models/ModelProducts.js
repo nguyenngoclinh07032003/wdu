@@ -17,6 +17,10 @@ const modelProduct = new Schema({
         type: Number,
         default: 0,
     },
+    stock: {
+        type: Number,
+        default: 999,
+    },
     isCombo: { type: Boolean, default: false },
 });
 

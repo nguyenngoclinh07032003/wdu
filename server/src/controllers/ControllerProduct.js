@@ -5,6 +5,7 @@ const slugify = require('slugify');
 const fs = require('fs/promises');
 const path = require('path');
 const mongoose = require('mongoose');
+const { sanitizeProductHtml } = require('../utils/sanitizeHtml');
 
 class controllerProducts {
     async AddProducts(req, res) {
@@ -28,7 +29,7 @@ class controllerProducts {
             const newProducts = new modelProducts({
                 name: nameProduct,
                 price: priceProduct,
-                description,
+                description: sanitizeProductHtml(description),
                 slug,
                 img: imgUrls,
                 videos: videoUrls,
@@ -133,7 +134,7 @@ class controllerProducts {
             await data.updateOne({
                 name: nameProduct,
                 price: priceProduct,
-                description,
+                description: sanitizeProductHtml(description),
             });
 
             return res.status(200).json({

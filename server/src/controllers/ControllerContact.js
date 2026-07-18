@@ -7,9 +7,34 @@ const {
 } = require('../utils/supportRequestHelpers');
 const { normalizePhone } = require('../utils/supportCustomerNotify');
 
+const CONTACT_IP_WINDOW_MS = 15 * 60 * 1000;
+const CONTACT_IP_MAX = 8;
+const contactIpBucket = new Map();
+
+function hitContactIpLimit(ip) {
+    const now = Date.now();
+    for (const [key, entry] of contactIpBucket.entries()) {
+        if (now - entry.windowStart > CONTACT_IP_WINDOW_MS) contactIpBucket.delete(key);
+    }
+    const k = ip || 'unknown';
+    const entry = contactIpBucket.get(k) || { windowStart: now, count: 0 };
+    if (now - entry.windowStart > CONTACT_IP_WINDOW_MS) {
+        entry.windowStart = now;
+        entry.count = 0;
+    }
+    entry.count += 1;
+    contactIpBucket.set(k, entry);
+    return entry.count > CONTACT_IP_MAX;
+}
+
 const ControllerContact = {
     async submit(req, res) {
         try {
+            const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
+            if (hitContactIpLimit(String(clientIp))) {
+                return res.status(429).json({ message: 'Gửi quá nhiều yêu cầu. Vui lòng thử lại sau.' });
+            }
+
             const {
                 fullName,
                 phone,

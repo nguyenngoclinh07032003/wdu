@@ -1,3 +1,8 @@
+import {
+    getDeliveryStatusInfo,
+    resolveDeliveryStatus,
+} from './deliveryStatus';
+
 export const ORDER_STATUSES = [
     'pending',
     'confirmed',
@@ -25,8 +30,25 @@ export const normalizeOrderStatus = (orderOrStatus) => {
     return normalizeStatusValue(orderOrStatus?.status || orderOrStatus?.trangthai, 'pending');
 };
 
-export const getOrderStatusInfo = (status) => {
-    const normalizedStatus = normalizeStatusValue(status, 'pending');
+/** Prefer deliveryStatus display when present */
+export const getOrderStatusInfo = (orderOrStatus) => {
+    if (orderOrStatus && typeof orderOrStatus === 'object') {
+        const delivery = resolveDeliveryStatus(orderOrStatus);
+        if (delivery) {
+            const info = getDeliveryStatusInfo(orderOrStatus);
+            return {
+                text: info.label,
+                label: info.label,
+                className: info.className,
+                deliveryStatus: delivery,
+            };
+        }
+    }
+
+    const normalizedStatus = normalizeStatusValue(
+        typeof orderOrStatus === 'string' ? orderOrStatus : orderOrStatus?.status,
+        'pending',
+    );
 
     switch (normalizedStatus) {
         case 'pending':
@@ -43,24 +65,31 @@ export const getOrderStatusInfo = (status) => {
                 className: 'confirmed',
             };
 
+        case 'picking':
+            return {
+                text: 'Shipper đã nhận đơn',
+                label: 'Shipper đã nhận đơn',
+                className: 'confirmed',
+            };
+
         case 'shipping':
             return {
-                text: 'Đang giao',
-                label: 'Đang giao',
+                text: 'Đang giao hàng',
+                label: 'Đang giao hàng',
                 className: 'shipping',
             };
 
         case 'completed':
             return {
-                text: 'Hoàn tất',
-                label: 'Hoàn tất',
+                text: 'Giao hàng thành công',
+                label: 'Giao hàng thành công',
                 className: 'completed',
             };
 
         case 'failed':
             return {
-                text: 'Giao thất bại',
-                label: 'Giao thất bại',
+                text: 'Giao hàng thất bại lần 1',
+                label: 'Giao hàng thất bại lần 1',
                 className: 'failed',
             };
 
@@ -94,7 +123,15 @@ export const getOrderStatusInfo = (status) => {
     }
 };
 
-export const getNextStatusOptions = (currentStatus = 'pending') => {
+export const getNextStatusOptions = (currentStatus = 'pending', order = null) => {
+    // When order is in delivery flow, admin should not manually change shipper results
+    if (order?.deliveryStatus) {
+        if (order.deliveryStatus === 'RETURNING') {
+            return []; // use confirm-return button instead
+        }
+        return [];
+    }
+
     const normalizedStatus = normalizeStatusValue(currentStatus, 'pending');
 
     switch (normalizedStatus) {
@@ -106,21 +143,8 @@ export const getNextStatusOptions = (currentStatus = 'pending') => {
 
         case 'confirmed':
             return [
-                { value: 'shipping', label: 'Đang giao' },
                 { value: 'cancelled', label: 'Hủy đơn' },
             ];
-
-        case 'shipping':
-            return [
-                { value: 'completed', label: 'Giao thành công' },
-                { value: 'failed', label: 'Giao thất bại' },
-            ];
-
-        case 'failed':
-            return [{ value: 'returning', label: 'Đang hoàn hàng' }];
-
-        case 'returning':
-            return [{ value: 'returned', label: 'Đã hoàn hàng' }];
 
         default:
             return [];
@@ -133,10 +157,19 @@ export const canUserCancelOrder = (status) => {
     return normalizedStatus === 'pending' || normalizedStatus === 'confirmed';
 };
 
-export const canAdminUpdateOrder = (status) => {
-    const normalizedStatus = normalizeStatusValue(status, 'pending');
+export const canAdminUpdateOrder = (statusOrOrder) => {
+    if (statusOrOrder && typeof statusOrOrder === 'object') {
+        if (statusOrOrder.deliveryStatus) {
+            return statusOrOrder.deliveryStatus === 'RETURNING';
+        }
+        statusOrOrder = statusOrOrder.status;
+    }
 
-    return !['completed', 'returned', 'cancelled'].includes(normalizedStatus);
+    const normalizedStatus = normalizeStatusValue(statusOrOrder, 'pending');
+
+    return !['completed', 'returned', 'cancelled', 'shipping', 'failed', 'returning'].includes(
+        normalizedStatus,
+    );
 };
 
 export const isLockedOrderStatus = (status) => {

@@ -11,10 +11,19 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { normalizeOrderStatus, getOrderStatusInfo, canAdminUpdateOrder } from '../utils/orderStatus';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPenToSquare, faBan, faLock, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
+import {
+    faPenToSquare,
+    faBan,
+    faLock,
+    faCircleCheck,
+    faBoxOpen,
+} from '@fortawesome/free-solid-svg-icons';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { faMagnifyingGlass, faFileExport } from '@fortawesome/free-solid-svg-icons';
+import { io } from 'socket.io-client';
+import { confirmOrderReturn } from '../services/shipperService';
+import { resolveDeliveryStatus } from '../utils/deliveryStatus';
 const cx = classNames.bind(styles);
 
 function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshIntervalMs = 15000 }) {
@@ -65,9 +74,41 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
+        const socket = io(process.env.REACT_APP_SERVER, {
+            withCredentials: true,
+            transports: ['websocket', 'polling'],
+        });
+        socket.emit('join', 'role:admin');
+        socket.emit('join', 'role:staff');
+        const onDeliveryUpdate = (payload) => {
+            if (!payload?.orderId) {
+                fetchOrders();
+                return;
+            }
+            setDataCart((prev) =>
+                prev.map((order) => {
+                    if (String(order._id) !== String(payload.orderId)) return order;
+                    return {
+                        ...order,
+                        status: payload.status || order.status,
+                        deliveryStatus: payload.deliveryStatus || order.deliveryStatus,
+                        deliveryAttempt: payload.deliveryAttempt ?? order.deliveryAttempt,
+                        updatedAt: payload.updatedAt || order.updatedAt,
+                        ...(payload.staffView || {}),
+                    };
+                }),
+            );
+            toast.info(`Đơn ${String(payload.orderId).slice(-6)}: ${payload.statusDisplay || 'đã cập nhật'}`);
+        };
+        socket.on('order:delivery-updated', onDeliveryUpdate);
+
         return () => {
             clearInterval(intervalId);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            socket.off('order:delivery-updated', onDeliveryUpdate);
+            socket.emit('leave', 'role:admin');
+            socket.emit('leave', 'role:staff');
+            socket.disconnect();
         };
     }, [autoRefresh, fetchOrders, refreshIntervalMs]);
 
@@ -226,7 +267,7 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
             'Địa chỉ': item.address || '',
             'Tổng tiền': Number(item.sumprice || 0),
             'Thanh toán': item.paymentMethod || '',
-            'Trạng thái': getOrderStatusInfo(normalizeOrderStatus(item)).text,
+            'Trạng thái': getOrderStatusInfo(item).text,
             'Ngày tạo': item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '',
         }));
 
@@ -341,12 +382,18 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
                             {currentProducts.length > 0 ? (
                                 currentProducts.map((item) => {
                                     const status = normalizeOrderStatus(item);
-                                    const statusInfo = getOrderStatusInfo(status);
+                                    const statusInfo = getOrderStatusInfo(item);
                                     const products = Array.isArray(item.products) ? item.products : [];
                                     const firstProduct = products[0];
                                     const remainCount = products.length > 1 ? products.length - 1 : 0;
-                                    const canUpdate = canAdminUpdateOrder(status);
-                                    const canCancel = allowCancelOrder && status !== 'completed' && status !== 'cancelled';
+                                    const deliveryStatus = resolveDeliveryStatus(item);
+                                    const canConfirmReturn = deliveryStatus === 'RETURNING';
+                                    const canUpdate = canAdminUpdateOrder(item) && !deliveryStatus;
+                                    const canCancel =
+                                        allowCancelOrder &&
+                                        !deliveryStatus &&
+                                        status !== 'completed' &&
+                                        status !== 'cancelled';
 
                                     return (
                                         <tr key={item._id}>
@@ -359,6 +406,12 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
                                                             ? new Date(item.createdAt).toLocaleString('vi-VN')
                                                             : '---'}
                                                     </span>
+                                                    {item.shipperName ? (
+                                                        <span>Shipper: {item.shipperName}</span>
+                                                    ) : null}
+                                                    {item.deliveryAttempt ? (
+                                                        <span>Lần giao: {item.deliveryAttempt}</span>
+                                                    ) : null}
                                                 </div>
                                             </td>
 
@@ -399,11 +452,47 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
                                                 <span className={cx('statusBadge', statusInfo.className)}>
                                                     {statusInfo.text}
                                                 </span>
+                                                {item.firstFailureReason || item.secondFailureReason ? (
+                                                    <div className={cx('infoBlock')} style={{ marginTop: 6 }}>
+                                                        <span>
+                                                            Lý do:{' '}
+                                                            {item.secondFailureReason || item.firstFailureReason}
+                                                        </span>
+                                                        {item.redeliveryScheduledAt ? (
+                                                            <span>
+                                                                Giao lại:{' '}
+                                                                {new Date(
+                                                                    item.redeliveryScheduledAt,
+                                                                ).toLocaleString('vi-VN')}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                ) : null}
                                             </td>
 
                                             <td>
                                                 <div className={cx('actionWrap')}>
-                                                    {canUpdate ? (
+                                                    {canConfirmReturn ? (
+                                                        <button
+                                                            type="button"
+                                                            className={cx('iconButton', 'editButton')}
+                                                            title="Xác nhận đã nhận lại hàng"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await confirmOrderReturn(item._id);
+                                                                    toast.success('Đã xác nhận hoàn hàng');
+                                                                    fetchOrders();
+                                                                } catch (error) {
+                                                                    toast.error(
+                                                                        error.response?.data?.message ||
+                                                                            'Xác nhận hoàn hàng thất bại',
+                                                                    );
+                                                                }
+                                                            }}
+                                                        >
+                                                            <FontAwesomeIcon icon={faBoxOpen} />
+                                                        </button>
+                                                    ) : canUpdate ? (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleShowModalEdit(item)}
@@ -416,7 +505,11 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
                                                         <button
                                                             type="button"
                                                             className={cx('iconButton', 'lockButton')}
-                                                            title="Đơn hàng không thể cập nhật"
+                                                            title={
+                                                                deliveryStatus
+                                                                    ? 'Kết quả giao do shipper cập nhật'
+                                                                    : 'Đơn hàng không thể cập nhật'
+                                                            }
                                                             disabled
                                                         >
                                                             <FontAwesomeIcon icon={faLock} />

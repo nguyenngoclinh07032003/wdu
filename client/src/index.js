@@ -8,6 +8,8 @@ import ProtectedAdminRoute from '../../client/src/Route/ProtectedAdminRoute';
 import ProtectedStaffRoute from '../../client/src/Route/ProtectedStaffRoute';
 import ProtectedDoctorRoute from '../../client/src/Route/ProtectedDoctorRoute';
 import ProtectedAskerRoute from '../../client/src/Route/ProtectedAskerRoute';
+import ProtectedShipperRoute from '../../client/src/Route/ProtectedShipperRoute';
+import ProtectedUserRoute from '../../client/src/Route/ProtectedUserRoute';
 import ScrollToTop from './Components/ScrollToTop';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -19,8 +21,8 @@ root.render(
                 <ScrollToTop />
                 <Routes>
                     {publicRoute.map((route, index) => {
-                        // Chặn admin
-                        if (route.path === '/admin') {
+                        // Chặn toàn bộ route /admin (kể cả /admin/customer/:id)
+                        if (route.path === '/admin' || String(route.path).startsWith('/admin/')) {
                             return (
                                 <Route
                                     key={index}
@@ -66,6 +68,30 @@ root.render(
                                     key={index}
                                     path={route.path}
                                     element={<ProtectedAskerRoute>{route.element}</ProtectedAskerRoute>}
+                                />
+                            );
+                        }
+
+                        if (route.path === '/shipper/dashboard') {
+                            return (
+                                <Route
+                                    key={index}
+                                    path={route.path}
+                                    element={<ProtectedShipperRoute>{route.element}</ProtectedShipperRoute>}
+                                />
+                            );
+                        }
+
+                        if (
+                            route.path === '/info' ||
+                            route.path === '/payments' ||
+                            route.path === '/address-book'
+                        ) {
+                            return (
+                                <Route
+                                    key={index}
+                                    path={route.path}
+                                    element={<ProtectedUserRoute>{route.element}</ProtectedUserRoute>}
                                 />
                             );
                         }

@@ -144,6 +144,7 @@ function route(app) {
     app.use('/api/doctor', require('./RouteDoctor'));
     app.use('/api/doctor-inbox', require('./RouteDoctorInbox'));
     app.use('/api/staff-inbox', require('./RouteStaffInbox'));
+    app.use('/api/staff', require('./RouteStaffInbox'));
 
     // Address
     app.use('/api/addresses', AddressRoute);
@@ -179,6 +180,9 @@ function route(app) {
 
     // Shipper
     app.use('/', require('./RouterShipper'));
+
+    // Delivery status (2-attempt flow)
+    app.use('/', require('./RouteDeliveryStatus'));
 
     // Reminder
     app.use('/', require('./RouteReminder'));

@@ -1,20 +1,68 @@
 const modelReview = require('../models/ModelReview');
+const ModelPayment = require('../models/ModelPayment');
 const { containsBadWords } = require('../utils/badWords');
+
+const COMPLETED_DELIVERY = ['DELIVERED', 'DELIVERED_AFTER_RETRY'];
 
 class ControllerReview {
     async createReview(req, res) {
         try {
             const { orderId, productIndex, productId, nameProduct, img, rating, content, tags } = req.body;
 
-            if (!orderId || !nameProduct || !rating) {
+            if (!orderId || !rating) {
                 return res.status(400).json({
                     message: 'Thiếu dữ liệu đánh giá',
                 });
             }
 
+            const order = await ModelPayment.findById(orderId);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+
+            const userId = String(req.user?.id || '');
+            const email = req.user?.email || '';
+            const ownsOrder =
+                (order.userId && String(order.userId) === userId) ||
+                (order.user && order.user === email) ||
+                (order.email && order.email === email);
+
+            if (!ownsOrder) {
+                return res.status(403).json({ message: 'Bạn chỉ có thể đánh giá đơn của mình' });
+            }
+
+            const delivered =
+                order.status === 'completed' ||
+                COMPLETED_DELIVERY.includes(order.deliveryStatus);
+
+            if (!delivered) {
+                return res.status(400).json({
+                    message: 'Chỉ đánh giá được đơn đã giao thành công',
+                });
+            }
+
+            const products = Array.isArray(order.products) ? order.products : [];
+            const idx = Number(productIndex || 0);
+            const line = products[idx];
+            if (!line) {
+                return res.status(400).json({ message: 'Sản phẩm không thuộc đơn hàng này' });
+            }
+
+            if (productId && line.productId && String(line.productId) !== String(productId)) {
+                return res.status(400).json({ message: 'Sản phẩm không khớp với đơn hàng' });
+            }
+
+            if (
+                nameProduct &&
+                line.nameProduct &&
+                String(nameProduct).trim() !== String(line.nameProduct).trim()
+            ) {
+                return res.status(400).json({ message: 'Tên sản phẩm không khớp với đơn hàng' });
+            }
+
             const existedReview = await modelReview.findOne({
                 orderId,
-                productIndex: Number(productIndex || 0),
+                productIndex: idx,
                 userId: req.user?.id,
             });
 
@@ -34,10 +82,10 @@ class ControllerReview {
 
             const review = await modelReview.create({
                 orderId,
-                productIndex: Number(productIndex || 0),
-                productId: productId || null,
-                nameProduct,
-                img: img || '',
+                productIndex: idx,
+                productId: line.productId || productId || null,
+                nameProduct: line.nameProduct || nameProduct,
+                img: line.img || img || '',
                 rating,
                 content,
                 tags: tags ? JSON.parse(tags) : [],

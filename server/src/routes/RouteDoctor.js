@@ -7,6 +7,11 @@ const uploadDoctorCertificate = require('../middlewares/uploadDoctorCertificate'
 
 router.get('/profile', ControllerJWT.verifyTokenDoctor, ControllerDoctor.getProfile);
 router.put('/profile', ControllerJWT.verifyTokenDoctor, ControllerDoctor.updateProfile);
+router.get(
+    '/certificate-file',
+    ControllerJWT.verifyToken,
+    ControllerDoctor.serveCertificateFile
+);
 router.post(
     '/certificate',
     ControllerJWT.verifyTokenDoctor,

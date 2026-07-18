@@ -11,12 +11,18 @@ const buildProfileResponse = (profile, user) => ({
     specialty: profile.specialty,
     hospital: profile.hospital,
     licenseNumber: profile.licenseNumber,
+    bio: profile.bio || '',
+    experienceYears: profile.experienceYears || 0,
+    avatarUrl: profile.avatarUrl || '',
     certificateUrl: profile.certificateUrl,
     certificateFileName: profile.certificateFileName,
     status: profile.status,
     rejectionReason: profile.rejectionReason,
     reviewedAt: profile.reviewedAt,
     updatedAt: profile.updatedAt,
+    verifiedFieldsLocked: profile.status === 'approved',
+    pendingSpecialty: profile.pendingSpecialty || '',
+    pendingLicenseNumber: profile.pendingLicenseNumber || '',
 });
 
 async function getOrCreateProfile(userId) {
@@ -47,34 +53,51 @@ class ControllerDoctor {
     async updateProfile(req, res) {
         try {
             const userId = req.user?.id;
-            const { specialty, hospital, licenseNumber } = req.body;
+            const { specialty, hospital, licenseNumber, bio, experienceYears } = req.body;
 
             const profile = await getOrCreateProfile(userId);
             const oldSpecialty = profile.specialty;
-            const oldHospital = profile.hospital;
             const oldLicenseNumber = profile.licenseNumber;
 
-            if (specialty !== undefined) profile.specialty = String(specialty).trim();
             if (hospital !== undefined) profile.hospital = String(hospital).trim();
-            if (licenseNumber !== undefined) profile.licenseNumber = String(licenseNumber).trim();
+            if (bio !== undefined) profile.bio = String(bio).trim();
+            if (experienceYears !== undefined) {
+                const years = Number(experienceYears);
+                profile.experienceYears = Number.isFinite(years) && years >= 0 ? years : 0;
+            }
 
-            if (profile.status === 'rejected') {
-                profile.status = 'pending';
-                profile.rejectionReason = '';
-            } else if (profile.status === 'approved') {
-                const hasChanges =
-                    (specialty !== undefined && String(specialty).trim() !== String(oldSpecialty || '').trim()) ||
-                    (hospital !== undefined && String(hospital).trim() !== String(oldHospital || '').trim()) ||
-                    (licenseNumber !== undefined &&
-                        String(licenseNumber).trim() !== String(oldLicenseNumber || '').trim());
+            // Verified fields: specialty + licenseNumber require re-approval when already approved
+            if (profile.status === 'approved') {
+                const specialtyChanged =
+                    specialty !== undefined && String(specialty).trim() !== String(oldSpecialty || '').trim();
+                const licenseChanged =
+                    licenseNumber !== undefined &&
+                    String(licenseNumber).trim() !== String(oldLicenseNumber || '').trim();
 
-                if (hasChanges) {
+                if (specialtyChanged || licenseChanged) {
+                    if (specialtyChanged) {
+                        profile.pendingSpecialty = String(specialty).trim();
+                        profile.specialty = String(specialty).trim();
+                    }
+                    if (licenseChanged) {
+                        profile.pendingLicenseNumber = String(licenseNumber).trim();
+                        profile.licenseNumber = String(licenseNumber).trim();
+                    }
                     profile.status = 'pending';
                     profile.reviewedBy = null;
                     profile.reviewedAt = null;
+                    profile.rejectionReason = '';
                 }
-            } else if (profile.certificateUrl) {
-                profile.status = 'pending';
+            } else {
+                if (specialty !== undefined) profile.specialty = String(specialty).trim();
+                if (licenseNumber !== undefined) profile.licenseNumber = String(licenseNumber).trim();
+
+                if (profile.status === 'rejected') {
+                    profile.status = 'pending';
+                    profile.rejectionReason = '';
+                } else if (profile.certificateUrl) {
+                    profile.status = 'pending';
+                }
             }
 
             profile.updatedAt = Date.now();
@@ -82,7 +105,10 @@ class ControllerDoctor {
 
             const user = await ModelUser.findById(userId).select('-password');
             return res.status(200).json({
-                message: 'Cập nhật hồ sơ bác sĩ thành công',
+                message:
+                    profile.status === 'pending' && profile.certificateUrl
+                        ? 'Đã gửi hồ sơ chờ duyệt lại'
+                        : 'Cập nhật hồ sơ bác sĩ thành công',
                 profile: buildProfileResponse(profile, user),
             });
         } catch (error) {
@@ -216,6 +242,16 @@ class ControllerDoctor {
                 return res.status(404).json({ message: 'Không tìm thấy hồ sơ bác sĩ' });
             }
 
+            if (!profile.certificateUrl || !String(profile.certificateUrl).trim()) {
+                return res.status(400).json({
+                    message: 'Chưa có file chứng chỉ — không thể duyệt',
+                });
+            }
+
+            if (profile.status === 'approved') {
+                return res.status(400).json({ message: 'Hồ sơ đã được duyệt trước đó' });
+            }
+
             profile.status = 'approved';
             profile.rejectionReason = '';
             profile.reviewedBy = req.user?.id;
@@ -319,6 +355,71 @@ class ControllerDoctor {
             return res.status(200).json(data);
         } catch (error) {
             console.error('listQuestionsForAdmin error:', error);
+            return res.status(500).json({ message: 'Lỗi server' });
+        }
+    }
+
+    /** Chỉ admin hoặc bác sĩ sở hữu được xem file chứng chỉ */
+    async serveCertificateFile(req, res) {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+
+            let rel = String(req.query.path || req.query.f || '').trim();
+            if (!rel) {
+                return res.status(400).json({ message: 'Thiếu đường dẫn file' });
+            }
+
+            // Chuẩn hóa về relative trong uploads/doctor-certificates
+            rel = rel.replace(/\\/g, '/');
+            if (rel.startsWith('http://') || rel.startsWith('https://')) {
+                try {
+                    const u = new URL(rel);
+                    rel = u.pathname;
+                } catch (e) {
+                    return res.status(400).json({ message: 'Đường dẫn không hợp lệ' });
+                }
+            }
+            if (rel.startsWith('/uploads/')) {
+                rel = rel.slice('/uploads/'.length);
+            }
+            if (rel.startsWith('uploads/')) {
+                rel = rel.slice('uploads/'.length);
+            }
+            if (!rel.startsWith('doctor-certificates/')) {
+                return res.status(403).json({ message: 'Chỉ phục vụ file chứng chỉ' });
+            }
+
+            // Chặn path traversal
+            if (rel.includes('..')) {
+                return res.status(400).json({ message: 'Đường dẫn không hợp lệ' });
+            }
+
+            const user = req.user;
+            const isAdmin = !!user?.isAdmin;
+            const isDoctor = user?.role === 'doctor';
+
+            if (!isAdmin && !isDoctor) {
+                return res.status(403).json({ message: 'Không có quyền xem file' });
+            }
+
+            if (!isAdmin) {
+                const profile = await ModelDoctorProfile.findOne({ userId: user.id }).select('certificateUrl');
+                const owned = String(profile?.certificateUrl || '').replace(/\\/g, '/');
+                const ownedNorm = owned.startsWith('/uploads/') ? owned.slice('/uploads/'.length) : owned.replace(/^uploads\//, '');
+                if (!ownedNorm || ownedNorm !== rel) {
+                    return res.status(403).json({ message: 'Không có quyền xem chứng chỉ này' });
+                }
+            }
+
+            const abs = path.join(__dirname, '../uploads', rel);
+            if (!fs.existsSync(abs)) {
+                return res.status(404).json({ message: 'Không tìm thấy file' });
+            }
+
+            return res.sendFile(abs);
+        } catch (error) {
+            console.error('serveCertificateFile error:', error);
             return res.status(500).json({ message: 'Lỗi server' });
         }
     }

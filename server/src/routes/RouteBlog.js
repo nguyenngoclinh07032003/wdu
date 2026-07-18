@@ -6,16 +6,36 @@ const compressImage = require('../middlewares/compressImage');
 
 const ControllerBlog = require('../controllers/ControllerBlog');
 const ControllerBlogAdmin = require('../controllers/ControllerAdminBlog');
+const ControllerJWT = require('../jwt/ControllerJWT');
 
-// Admin routes
-router.post('/api/admin/blogs', upload.single('thumbnail'), compressImage, ControllerBlogAdmin.createBlog);
-router.patch('/api/admin/blogs/:id', upload.single('thumbnail'), compressImage, ControllerBlogAdmin.updateBlog);
+// Admin routes (require admin)
+router.post(
+    '/api/admin/blogs',
+    ControllerJWT.verifyTokenAdmin,
+    upload.single('thumbnail'),
+    compressImage,
+    ControllerBlogAdmin.createBlog,
+);
+router.patch(
+    '/api/admin/blogs/:id',
+    ControllerJWT.verifyTokenAdmin,
+    upload.single('thumbnail'),
+    compressImage,
+    ControllerBlogAdmin.updateBlog,
+);
 
-router.get('/api/admin/blogs', ControllerBlogAdmin.getAllBlogsAdmin);
-router.patch('/api/admin/blogs/:id/soft-delete', ControllerBlogAdmin.softDeleteBlog);
-router.patch('/api/admin/blogs/:id/restore', ControllerBlogAdmin.restoreBlog);
-router.delete('/api/admin/blogs/:id/force-delete', ControllerBlogAdmin.forceDeleteBlog);
-// router.delete('/api/admin/blogs/empty-trash', ControllerBlogAdmin.emptyTrash);
+router.get('/api/admin/blogs', ControllerJWT.verifyTokenAdmin, ControllerBlogAdmin.getAllBlogsAdmin);
+router.patch(
+    '/api/admin/blogs/:id/soft-delete',
+    ControllerJWT.verifyTokenAdmin,
+    ControllerBlogAdmin.softDeleteBlog,
+);
+router.patch('/api/admin/blogs/:id/restore', ControllerJWT.verifyTokenAdmin, ControllerBlogAdmin.restoreBlog);
+router.delete(
+    '/api/admin/blogs/:id/force-delete',
+    ControllerJWT.verifyTokenAdmin,
+    ControllerBlogAdmin.forceDeleteBlog,
+);
 
 // Public routes
 router.get('/api/blogs/featured', ControllerBlog.getFeaturedBlog);

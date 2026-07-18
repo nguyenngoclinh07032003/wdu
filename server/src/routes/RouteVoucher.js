@@ -9,13 +9,13 @@ const ControllerJWT = require('../jwt/ControllerJWT');
 router.get('/api/vouchers', ControllerVoucher.getPublic);
 
 // ADMIN
-router.get('/api/admin/vouchers', ControllerVoucher.getAll);
-router.post('/api/admin/vouchers', ControllerVoucher.create);
-router.put('/api/admin/vouchers/:id', ControllerVoucher.update);
-router.delete('/api/admin/vouchers/:id', ControllerVoucher.delete);
+router.get('/api/admin/vouchers', ControllerJWT.verifyTokenAdmin, ControllerVoucher.getAll);
+router.post('/api/admin/vouchers', ControllerJWT.verifyTokenAdmin, ControllerVoucher.create);
+router.put('/api/admin/vouchers/:id', ControllerJWT.verifyTokenAdmin, ControllerVoucher.update);
+router.delete('/api/admin/vouchers/:id', ControllerJWT.verifyTokenAdmin, ControllerVoucher.delete);
 
 // Notifications
 router.get('/api/notifications/public', ControllerNotification.getPublic);
-router.post('/api/notifications', ControllerNotification.create);
+router.post('/api/notifications', ControllerJWT.verifyTokenAdmin, ControllerNotification.create);
 
 module.exports = router;

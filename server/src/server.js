@@ -3,7 +3,9 @@ const express = require('express');
 const app = express();
 const route = require('./routes');
 const cookieParser = require('cookie-parser');
+const cookie = require('cookie');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./Config/db');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -11,15 +13,24 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { askQuestion } = require('./utils/chatbot');
 const startReminderMailJob = require('./jobs/reminderMailJob');
+const backfillDeliveryStatuses = require('./jobs/backfillDeliveryStatus');
 const multer = require('multer');
+const ModelUser = require('./models/ModelUser');
 
 const PORT = process.env.PORT || 5001;
 const server = http.createServer(app);
 
 // ===== SOCKET.IO =====
+if (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_URL) {
+    console.error('FATAL: REACT_APP_URL is required in production');
+    process.exit(1);
+}
+
+const corsOrigin = process.env.REACT_APP_URL || 'http://localhost:3000';
+
 const io = new Server(server, {
     cors: {
-        origin: process.env.REACT_APP_URL,
+        origin: corsOrigin,
         methods: ['GET', 'POST'],
         credentials: true,
     },
@@ -27,11 +38,61 @@ const io = new Server(server, {
 
 app.set('io', io);
 
+function canJoinSocketRoom(user, room) {
+    if (!user || !room) return false;
+
+    if (room === 'doctor-inbox') return user.role === 'doctor';
+    if (room === 'staff-inbox') return user.role === 'staff' || user.isAdmin;
+    if (room === 'role:admin') return !!user.isAdmin;
+    if (room === 'role:staff') return user.role === 'staff' || user.isAdmin;
+
+    if (room.startsWith('user:')) return room === `user:${user.id}`;
+    if (room.startsWith('shipper:')) {
+        return user.role === 'shipper' && room === `shipper:${user.id}`;
+    }
+    // order:<id> — chỉ admin/staff (shipper/user dùng room riêng)
+    if (room.startsWith('order:')) return user.isAdmin || user.role === 'staff';
+
+    return false;
+}
+
+io.use(async (socket, next) => {
+    try {
+        const raw = socket.request.headers.cookie || '';
+        const parsed = cookie.parse(raw);
+        const token = parsed.Token;
+        if (!token) {
+            return next(new Error('Unauthorized'));
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        let findUser = null;
+        if (decoded?.id) {
+            findUser = await ModelUser.findById(decoded.id).select('role isAdmin isActive');
+        } else if (decoded?.email) {
+            findUser = await ModelUser.findOne({ email: decoded.email }).select('role isAdmin isActive');
+        }
+
+        if (!findUser || findUser.isActive === false) {
+            return next(new Error('Unauthorized'));
+        }
+
+        socket.user = {
+            id: String(findUser._id),
+            role: findUser.role,
+            isAdmin: !!findUser.isAdmin,
+        };
+        return next();
+    } catch (error) {
+        return next(new Error('Unauthorized'));
+    }
+});
+
 // ===== MIDDLEWARE =====
 app.use(cookieParser());
 app.use(
     cors({
-        origin: process.env.REACT_APP_URL,
+        origin: corsOrigin,
         credentials: true,
     }),
 );
@@ -58,16 +119,22 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// upload cache
-app.use(
-    '/uploads',
-    (req, res, next) => {
-        res.set('Cache-Control', 'public, max-age=31536000');
-        next();
-    },
-    express.static(path.join(__dirname, 'uploads')),
-);
+// upload cache — chặn public doctor-certificates + delivery-evidence
+app.use('/uploads', (req, res, next) => {
+    const p = String(req.path || '');
+    if (
+        p.startsWith('/doctor-certificates') ||
+        p.includes('doctor-certificates') ||
+        p.startsWith('/delivery-evidence') ||
+        p.includes('delivery-evidence')
+    ) {
+        return res.status(401).json({ message: 'Unauthorized' });
+    }
+    res.set('Cache-Control', 'public, max-age=31536000');
+    next();
+});
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', express.static('uploads'));
 
 const missingUploadPlaceholder = `
@@ -85,8 +152,17 @@ app.get(/^\/uploads\/.+/, (req, res) => {
 });
 
 route(app);
-connectDB();
+connectDB()
+    .then(() => backfillDeliveryStatuses())
+    .catch((err) => console.error('Startup backfill error:', err.message));
 startReminderMailJob();
+
+if (!process.env.MOMO_PARTNER_CODE || !process.env.MOMO_ACCESS_KEY || !process.env.MOMO_SECRET_KEY) {
+    console.warn('⚠️ MoMo sandbox keys missing – online MoMo checkout will fail until configured');
+}
+if (!process.env.VNPAY_TMN_CODE || !process.env.VNPAY_HASH_SECRET) {
+    console.warn('⚠️ VNPay sandbox keys missing – online VNPay checkout will fail until configured');
+}
 
 // ===== CHAT =====
 // Multer setup for file uploads
@@ -118,14 +194,24 @@ const upload = multer({
 //     }
 // });
 
-// // SOCKET EVENT LISTENER
-// io.on('connection', (socket) => {
-//     console.log('User connected:', socket.id);
+// SOCKET EVENT LISTENER
+io.on('connection', (socket) => {
+    socket.on('join', (room) => {
+        if (typeof room !== 'string' || !room.trim()) return;
+        const name = room.trim();
+        if (!canJoinSocketRoom(socket.user, name)) {
+            socket.emit('socket:error', { message: 'Không có quyền join room này' });
+            return;
+        }
+        socket.join(name);
+    });
 
-//     socket.on('disconnect', () => {
-//         console.log('User disconnected:', socket.id);
-//     });
-// });
+    socket.on('leave', (room) => {
+        if (typeof room === 'string' && room.trim()) {
+            socket.leave(room.trim());
+        }
+    });
+});
 
 // START SERVER
 server.listen(PORT, () => {

@@ -6,10 +6,41 @@ const { OAuth2Client } = require('google-auth-library');
 const ModelPayment = require('../models/ModelPayment');
 const ForgotPassword = require('../SendMail/ForgotPassword');
 const { hasActiveDelivery, getActiveDeliveryCountMap } = require('../utils/shipperDelivery');
+const { appendHistory, emitDeliveryUpdate } = require('../controllers/ControllerDeliveryStatus');
+const { DELIVERY_STATUS, getStatusDisplay, syncLegacyStatus } = require('../utils/deliveryStatus');
 
 require('dotenv').config();
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+const FORGOT_COOLDOWN_MS = 60 * 1000;
+const FORGOT_IP_WINDOW_MS = 15 * 60 * 1000;
+const FORGOT_IP_MAX = 10;
+const RESET_OTP_MAX_ATTEMPTS = 5;
+
+const forgotIpBucket = new Map();
+
+function pruneForgotIpBucket(now = Date.now()) {
+    for (const [ip, entry] of forgotIpBucket.entries()) {
+        if (now - entry.windowStart > FORGOT_IP_WINDOW_MS) {
+            forgotIpBucket.delete(ip);
+        }
+    }
+}
+
+function hitForgotIpLimit(ip) {
+    const now = Date.now();
+    pruneForgotIpBucket(now);
+    const key = ip || 'unknown';
+    const entry = forgotIpBucket.get(key) || { windowStart: now, count: 0 };
+    if (now - entry.windowStart > FORGOT_IP_WINDOW_MS) {
+        entry.windowStart = now;
+        entry.count = 0;
+    }
+    entry.count += 1;
+    forgotIpBucket.set(key, entry);
+    return entry.count > FORGOT_IP_MAX;
+}
 
 class ControllerUser {
     async Register(req, res) {
@@ -235,6 +266,7 @@ class ControllerUser {
                     surplus: dataUser.surplus,
                     isAdmin: dataUser.isAdmin,
                     isActive: dataUser.isActive,
+                    role: dataUser.role,
                 },
             });
         } catch (error) {
@@ -368,7 +400,11 @@ class ControllerUser {
                 });
             }
 
-            return res.status(200).json(dataUser);
+            const payload = dataUser.toObject();
+            payload.birthday = payload.birthday || payload.brirthday || null;
+            delete payload.brirthday;
+
+            return res.status(200).json(payload);
         } catch (error) {
             console.error('GetUser error:', error);
             return res.status(500).json({
@@ -422,7 +458,9 @@ class ControllerUser {
 
     async ForgotPassword(req, res) {
         try {
-            const email = req.body.email;
+            const email = String(req.body.email || '')
+                .trim()
+                .toLowerCase();
 
             if (!email) {
                 return res.status(400).json({
@@ -430,11 +468,28 @@ class ControllerUser {
                 });
             }
 
+            const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress;
+            if (hitForgotIpLimit(String(clientIp))) {
+                return res.status(429).json({
+                    message: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
+                });
+            }
+
+            // Không tiết lộ email có tồn tại hay không
+            const genericOk = {
+                message: 'Nếu email tồn tại, mã OTP đã được gửi (kiểm tra hộp thư).',
+            };
+
             const dataUser = await ModelUser.findOne({ email });
             if (!dataUser) {
-                return res.status(404).json({
-                    message: 'Không tìm thấy người dùng !!!',
-                });
+                return res.status(200).json(genericOk);
+            }
+
+            if (
+                dataUser.resetOtpLastRequestAt &&
+                Date.now() - new Date(dataUser.resetOtpLastRequestAt).getTime() < FORGOT_COOLDOWN_MS
+            ) {
+                return res.status(200).json(genericOk);
             }
 
             const secretKey = process.env.JWT_SECRET;
@@ -445,19 +500,21 @@ class ControllerUser {
                 expiresIn: otpExpiry,
             });
 
+            const hashedOtp = await bcrypt.hash(otp, 10);
+
             await ForgotPassword(email, token, otp);
 
             await ModelUser.updateOne(
                 { email },
                 {
-                    resetOtp: otp,
+                    resetOtp: hashedOtp,
                     resetOtpExpiry: new Date(Date.now() + 15 * 60 * 1000),
+                    resetOtpAttempts: 0,
+                    resetOtpLastRequestAt: new Date(),
                 },
             );
 
-            return res.status(200).json({
-                message: 'Thành công !!!',
-            });
+            return res.status(200).json(genericOk);
         } catch (error) {
             console.error('ForgotPassword error:', error);
             return res.status(500).json({
@@ -468,7 +525,10 @@ class ControllerUser {
 
     async ResetPassword(req, res) {
         try {
-            const { email, otp, newPassword } = req.body;
+            const email = String(req.body.email || '')
+                .trim()
+                .toLowerCase();
+            const { otp, newPassword } = req.body;
 
             if (!email || !otp || !newPassword) {
                 return res.status(400).json({
@@ -477,21 +537,37 @@ class ControllerUser {
             }
 
             const user = await ModelUser.findOne({ email });
-            if (!user) {
-                return res.status(404).json({
-                    message: 'Người dùng không tồn tại',
-                });
-            }
-
-            if (user.resetOtp !== otp) {
+            if (!user || !user.resetOtp) {
                 return res.status(401).json({
-                    message: 'OTP không chính xác',
+                    message: 'OTP không hợp lệ hoặc đã hết hạn',
                 });
             }
 
             if (!user.resetOtpExpiry || user.resetOtpExpiry < new Date()) {
+                await ModelUser.updateOne(
+                    { email },
+                    { resetOtp: '', resetOtpExpiry: null, resetOtpAttempts: 0 },
+                );
                 return res.status(401).json({
                     message: 'OTP đã hết hạn',
+                });
+            }
+
+            if ((user.resetOtpAttempts || 0) >= RESET_OTP_MAX_ATTEMPTS) {
+                await ModelUser.updateOne(
+                    { email },
+                    { resetOtp: '', resetOtpExpiry: null, resetOtpAttempts: 0 },
+                );
+                return res.status(429).json({
+                    message: 'Nhập sai OTP quá nhiều lần. Vui lòng yêu cầu mã mới.',
+                });
+            }
+
+            const otpOk = await bcrypt.compare(String(otp), user.resetOtp);
+            if (!otpOk) {
+                await ModelUser.updateOne({ email }, { $inc: { resetOtpAttempts: 1 } });
+                return res.status(401).json({
+                    message: 'OTP không chính xác',
                 });
             }
 
@@ -503,6 +579,7 @@ class ControllerUser {
                     password: hashPassword,
                     resetOtp: '',
                     resetOtpExpiry: null,
+                    resetOtpAttempts: 0,
                 },
             );
 
@@ -986,16 +1063,63 @@ class ControllerUser {
                 });
             }
 
-            order.shipperId = shipper._id;
-            order.shipperName = shipper.fullname;
-            order.assignedAt = new Date();
-            order.status = 'confirmed';
+            // Atomic first-assign — tránh 2 staff ghi đè nhau
+            const previousStatus = order.deliveryStatus || '';
+            const claimed = await ModelPayment.findOneAndUpdate(
+                {
+                    _id: orderId,
+                    status: { $in: ['pending', 'confirmed'] },
+                    $or: [{ shipperId: null }, { shipperId: { $exists: false } }],
+                },
+                {
+                    $set: {
+                        shipperId: shipper._id,
+                        shipperName: shipper.fullname,
+                        assignedAt: new Date(),
+                        status: 'confirmed',
+                        deliveryStatus: DELIVERY_STATUS.ASSIGNED,
+                        deliveryAttempt: 0,
+                        updatedAt: new Date(),
+                    },
+                },
+                { new: true },
+            );
 
-            await order.save();
+            if (!claimed) {
+                const existing = await ModelPayment.findById(orderId);
+                if (!existing) {
+                    return res.status(404).json({ message: 'Đơn hàng không tồn tại !!!' });
+                }
+                if (existing.shipperId) {
+                    return res.status(400).json({
+                        message: existing.shipperName
+                            ? `Đơn đã được gán cho ${existing.shipperName}.`
+                            : 'Đơn đã được gán cho shipper khác.',
+                    });
+                }
+                return res.status(400).json({ message: 'Không thể gán đơn ở trạng thái hiện tại' });
+            }
+
+            syncLegacyStatus(claimed);
+
+            await appendHistory({
+                order: claimed,
+                previousStatus: previousStatus || '',
+                newStatus: DELIVERY_STATUS.ASSIGNED,
+                attemptNumber: 0,
+                note: `Gán cho shipper ${shipper.fullname}`,
+                actor: {
+                    userId: req.user?.id || null,
+                    role: req.user?.isAdmin ? 'admin' : req.user?.role || 'admin',
+                },
+            });
+
+            emitDeliveryUpdate(req, claimed);
 
             return res.status(200).json({
                 message: `Đã gán đơn cho ${shipper.fullname} !!!`,
-                order,
+                order: claimed,
+                statusDisplay: getStatusDisplay(claimed),
             });
         } catch (error) {
             console.error('AssignOrderToShipper error:', error);

@@ -26,6 +26,14 @@ import {
 
 const cx = classNames.bind(styles);
 
+function getPostLoginPath(user) {
+    if (user?.isAdmin) return '/admin';
+    if (user?.role === 'staff') return '/staff';
+    if (user?.role === 'doctor') return '/doctor';
+    if (user?.role === 'shipper') return '/shipper/dashboard';
+    return '/';
+}
+
 function LoginUser() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -55,13 +63,7 @@ function LoginUser() {
 
             toast.success('Đăng nhập thành công!');
 
-            const role = res.data?.user?.role;
-            const isAdmin = res.data?.user?.isAdmin;
-            let redirectPath = '/';
-            if (isAdmin) redirectPath = '/admin';
-            else if (role === 'staff') redirectPath = '/staff';
-            else if (role === 'doctor') redirectPath = '/doctor';
-            else if (role === 'shipper') redirectPath = '/shipper/dashboard';
+            const redirectPath = getPostLoginPath(res.data?.user);
 
             setTimeout(() => {
                 navigate(redirectPath);
@@ -110,12 +112,13 @@ function LoginUser() {
                 return;
             }
 
-            await requestLoginFacebook(accessToken);
+            const data = await requestLoginFacebook(accessToken);
             toast.success('Đăng nhập Facebook thành công!');
-            navigate('/');
+            const redirectPath = getPostLoginPath(data?.user);
             setTimeout(() => {
+                navigate(redirectPath);
                 window.location.reload();
-            }, 1000);
+            }, 800);
         } catch (error) {
             const message = error?.response?.data?.message || 'Đăng nhập Facebook thất bại!';
             toast.error(message);
@@ -149,12 +152,13 @@ function LoginUser() {
         }
 
         try {
-            await requestLoginGoogle(credential);
+            const data = await requestLoginGoogle(credential);
             toast.success('Đăng nhập Google thành công!');
+            const redirectPath = getPostLoginPath(data?.user);
             setTimeout(() => {
+                navigate(redirectPath);
                 window.location.reload();
-            }, 1000);
-            navigate('/');
+            }, 800);
         } catch (error) {
             console.error('Login failed', error);
             const message = error?.response?.data?.message || 'Đăng nhập Google thất bại!';

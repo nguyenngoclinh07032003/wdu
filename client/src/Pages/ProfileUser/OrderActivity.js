@@ -202,7 +202,7 @@ function OrderActivity({ dataPayments = [], onViewDetail, onCancelSuccess }) {
 
                                     const isNewOrder = diffHours !== null && diffHours <= 24;
                                     const status = normalizeOrderStatus(item);
-                                    const statusInfo = getOrderStatusInfo(status);
+                                    const statusInfo = getOrderStatusInfo(item);
                                     const canCancel = canCancelOrder(status);
 
                                     return (
@@ -252,9 +252,23 @@ function OrderActivity({ dataPayments = [], onViewDetail, onCancelSuccess }) {
                                             </td>
 
                                             <td>
-                                                <span className={cx('statusBadge', statusInfo.className)}>
-                                                    {statusInfo.text}
-                                                </span>
+                                                <div className={cx('dateCell')}>
+                                                    <span className={cx('statusBadge', statusInfo.className)}>
+                                                        {statusInfo.text}
+                                                    </span>
+                                                    {item?.firstFailureReason || item?.secondFailureReason ? (
+                                                        <span className={cx('dateSub')}>
+                                                            Lý do:{' '}
+                                                            {item.secondFailureReason || item.firstFailureReason}
+                                                        </span>
+                                                    ) : null}
+                                                    {item?.redeliveryScheduledAt ? (
+                                                        <span className={cx('dateSub')}>
+                                                            Giao lại:{' '}
+                                                            {formatDateTime(item.redeliveryScheduledAt)}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                             </td>
 
                                             <td>

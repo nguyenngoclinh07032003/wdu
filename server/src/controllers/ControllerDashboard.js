@@ -40,6 +40,7 @@ class ControllerDashboard {
 
             const [
                 overview,
+                allOrdersCount,
                 totalProductsAgg,
                 todayRevenueAgg,
                 currentRevenueAgg,
@@ -62,6 +63,8 @@ class ControllerDashboard {
                         },
                     },
                 ]),
+
+                ModelPayment.countDocuments({ status: { $ne: 'cancelled' } }),
 
                 ModelPayment.aggregate([
                     { $match: paidMatch },
@@ -239,6 +242,7 @@ class ControllerDashboard {
 
             const totalRevenue = overview[0]?.totalRevenue || 0;
             const totalOrders = overview[0]?.totalOrders || 0;
+            const totalAllOrders = allOrdersCount || 0;
             const totalProducts = totalProductsAgg[0]?.totalProducts || 0;
             const todayRevenue = todayRevenueAgg[0]?.total || 0;
 
@@ -326,6 +330,7 @@ class ControllerDashboard {
                 totalRevenue,
                 todayRevenue,
                 totalOrders,
+                totalAllOrders,
                 totalProducts,
                 newUsers,
                 growth: Number(growth.toFixed(1)),

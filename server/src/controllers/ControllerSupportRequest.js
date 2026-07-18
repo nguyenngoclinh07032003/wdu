@@ -23,6 +23,22 @@ function isSameStaffId(left, right) {
     return String(left) === String(right);
 }
 
+function assertAssigneeOrAdmin(record, staff, res) {
+    if (staff?.isAdmin) return true;
+    const staffId = getStaffId(staff);
+    if (!record.assignedTo) {
+        res.status(400).json({ message: 'Yêu cầu chưa được tiếp nhận / phân công' });
+        return false;
+    }
+    if (!isSameStaffId(record.assignedTo, staffId)) {
+        res.status(403).json({
+            message: 'Chỉ nhân viên được phân công (hoặc admin) mới được thao tác yêu cầu này',
+        });
+        return false;
+    }
+    return true;
+}
+
 async function findRequestById(id) {
     return ModelSupportRequest.findById(id);
 }
@@ -106,39 +122,70 @@ const ControllerSupportRequest = {
 
     async accept(req, res) {
         try {
-            const record = await findRequestById(req.params.id);
-            if (!record) {
-                return res.status(404).json({ message: 'Không tìm thấy yêu cầu hỗ trợ' });
-            }
-
             const staff = getStaffUser(req);
             const staffId = getStaffId(staff);
-
-            if (record.assignedTo && !isSameStaffId(record.assignedTo, staffId)) {
-                return res.status(409).json({
-                    message: `Yêu cầu đã được ${record.assignedToName || 'nhân viên khác'} nhận xử lý`,
-                });
+            if (!staffId) {
+                return res.status(401).json({ message: 'Unauthorized' });
             }
 
-            if (record.status !== 'pending') {
+            const staffName = staff.fullname || staff.email || '';
+            const now = new Date();
+
+            const claimed = await ModelSupportRequest.findOneAndUpdate(
+                {
+                    _id: req.params.id,
+                    status: 'pending',
+                    $or: [
+                        { assignedTo: null },
+                        { assignedTo: { $exists: false } },
+                        { assignedTo: staffId },
+                    ],
+                },
+                {
+                    $set: {
+                        receivedBy: staffId,
+                        receivedByName: staffName,
+                        receivedAt: now,
+                        assignedTo: staffId,
+                        assignedToName: staffName,
+                        status: 'received',
+                        updatedAt: now,
+                    },
+                    $push: {
+                        statusHistory: {
+                            status: 'received',
+                            previousStatus: 'pending',
+                            action: 'accept',
+                            note: 'Nhân viên đã tiếp nhận yêu cầu',
+                            updatedBy: staffId,
+                            updatedByName: staffName,
+                            createdAt: now,
+                        },
+                    },
+                },
+                { new: true },
+            );
+
+            if (!claimed) {
+                const existing = await findRequestById(req.params.id);
+                if (!existing) {
+                    return res.status(404).json({ message: 'Không tìm thấy yêu cầu hỗ trợ' });
+                }
+                if (existing.assignedTo && !isSameStaffId(existing.assignedTo, staffId)) {
+                    return res.status(409).json({
+                        message: `Yêu cầu đã được ${existing.assignedToName || 'nhân viên khác'} nhận xử lý`,
+                    });
+                }
                 return res.status(400).json({ message: 'Yêu cầu không còn ở trạng thái chờ tiếp nhận' });
             }
 
-            record.receivedBy = staffId;
-            record.receivedByName = staff.fullname || staff.email || '';
-            record.receivedAt = new Date();
-            record.assignedTo = staffId;
-            record.assignedToName = staff.fullname || staff.email || '';
-            appendStatusHistory(record, 'received', 'Nhân viên đã tiếp nhận yêu cầu', staff, 'accept');
-            await record.save();
-
-            notifyCustomerRequestAccepted(record, staff).catch((error) => {
+            notifyCustomerRequestAccepted(claimed, staff).catch((error) => {
                 console.error('notifyCustomerRequestAccepted error:', error);
             });
 
             return res.status(200).json({
                 message: 'Đã tiếp nhận yêu cầu hỗ trợ',
-                data: record,
+                data: claimed,
             });
         } catch (error) {
             console.error('accept support request error:', error);
@@ -198,6 +245,8 @@ const ControllerSupportRequest = {
             }
 
             const staff = getStaffUser(req);
+            if (!assertAssigneeOrAdmin(record, staff, res)) return;
+
             const previousStatus = record.status;
 
             appendStatusHistory(record, status, note || '', staff);
@@ -232,6 +281,8 @@ const ControllerSupportRequest = {
             }
 
             const staff = getStaffUser(req);
+            if (!assertAssigneeOrAdmin(record, staff, res)) return;
+
             record.staffNotes = record.staffNotes || [];
             record.staffNotes.push({
                 text: note.trim(),
@@ -265,6 +316,8 @@ const ControllerSupportRequest = {
             }
 
             const staff = getStaffUser(req);
+            if (!assertAssigneeOrAdmin(record, staff, res)) return;
+
             record.replyHistory = record.replyHistory || [];
             record.replyHistory.push({
                 message: reply.trim(),

@@ -76,8 +76,43 @@ class ControllerReminder {
         try {
             const userId = req.user.id;
             const { id } = req.params;
+            const { productId, title, description, frequency, times, methods, isActive } = req.body;
 
-            const reminder = await ModelReminder.findOneAndUpdate({ _id: id, userId }, req.body, { new: true });
+            const updates = {};
+            if (title !== undefined) updates.title = String(title).trim();
+            if (description !== undefined) updates.description = String(description);
+            if (frequency !== undefined) {
+                if (!['daily', 'weekly', 'custom'].includes(frequency)) {
+                    return res.status(400).json({ success: false, message: 'Tần suất không hợp lệ' });
+                }
+                updates.frequency = frequency;
+            }
+            if (times !== undefined) {
+                if (!Array.isArray(times) || times.length === 0) {
+                    return res.status(400).json({ success: false, message: 'Thời gian nhắc không hợp lệ' });
+                }
+                updates.times = times;
+            }
+            if (methods !== undefined) {
+                updates.methods =
+                    Array.isArray(methods) && methods.length > 0 ? methods : ['push'];
+            }
+            if (typeof isActive === 'boolean') updates.isActive = isActive;
+            if (productId !== undefined) {
+                if (productId) {
+                    const product = await ModelProduct.findById(productId);
+                    if (!product) {
+                        return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+                    }
+                    updates.productId = productId;
+                } else {
+                    updates.productId = null;
+                }
+            }
+
+            const reminder = await ModelReminder.findOneAndUpdate({ _id: id, userId }, updates, {
+                new: true,
+            });
 
             if (!reminder) {
                 return res.status(404).json({

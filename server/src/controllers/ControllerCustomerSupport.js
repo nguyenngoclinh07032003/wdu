@@ -3,6 +3,26 @@ const ModelSupportCustomerNotification = require('../models/ModelSupportCustomer
 const { SUPPORT_STATUS_LABELS } = require('../utils/supportRequestHelpers');
 const { buildCustomerMatchQuery, normalizePhone } = require('../utils/supportCustomerNotify');
 
+function buildNotificationOwnerQuery(user) {
+    const userId = user?.id || user?._id;
+    const role = user?.role;
+    const isCustomerFacing = !role || role === 'user';
+    const or = [];
+
+    if (userId) or.push({ customerUserId: userId });
+
+    if (isCustomerFacing) {
+        const phone = normalizePhone(user?.phone || '');
+        const email = String(user?.email || '')
+            .trim()
+            .toLowerCase();
+        if (phone) or.push({ customerUserId: null, phone });
+        if (email) or.push({ customerUserId: null, email });
+    }
+
+    return or.length ? { $or: or } : null;
+}
+
 function sanitizeSupportRequestForCustomer(record) {
     const data = record.toObject ? record.toObject() : { ...record };
     delete data.staffNotes;
@@ -106,18 +126,10 @@ const ControllerCustomerSupport = {
                 return res.status(401).json({ message: 'Bạn cần đăng nhập để xem thông báo' });
             }
 
-            const userId = req.user?.id || req.user?._id;
-            const phone = normalizePhone(req.user?.phone || '');
-            const email = String(req.user?.email || '')
-                .trim()
-                .toLowerCase();
-
-            const notificationQuery = {
-                $or: [],
-            };
-            if (userId) notificationQuery.$or.push({ customerUserId: userId });
-            if (phone) notificationQuery.$or.push({ phone });
-            if (email) notificationQuery.$or.push({ email });
+            const notificationQuery = buildNotificationOwnerQuery(req.user);
+            if (!notificationQuery) {
+                return res.status(200).json({ data: [], unreadCount: 0 });
+            }
 
             const [data, unreadCount] = await Promise.all([
                 ModelSupportCustomerNotification.find(notificationQuery).sort({ createdAt: -1 }).lean(),
@@ -138,18 +150,15 @@ const ControllerCustomerSupport = {
                 return res.status(401).json({ message: 'Bạn cần đăng nhập' });
             }
 
-            const userId = req.user?.id || req.user?._id;
-            const phone = normalizePhone(req.user?.phone || '');
-            const email = String(req.user?.email || '').trim().toLowerCase();
+            const notificationQuery = buildNotificationOwnerQuery(req.user);
+            if (!notificationQuery) {
+                return res.status(404).json({ message: 'Không tìm thấy thông báo' });
+            }
 
             const notification = await ModelSupportCustomerNotification.findOneAndUpdate(
                 {
                     _id: req.params.id,
-                    $or: [
-                        ...(userId ? [{ customerUserId: userId }] : []),
-                        ...(phone ? [{ phone }] : []),
-                        ...(email ? [{ email }] : []),
-                    ],
+                    ...notificationQuery,
                 },
                 { isRead: true },
                 { new: true },
@@ -168,18 +177,15 @@ const ControllerCustomerSupport = {
 
     async markAllNotificationsRead(req, res) {
         try {
-            const userId = req.user?.id || req.user?._id;
-            const phone = normalizePhone(req.user?.phone || '');
-            const email = String(req.user?.email || '').trim().toLowerCase();
+            const notificationQuery = buildNotificationOwnerQuery(req.user);
+            if (!notificationQuery) {
+                return res.status(200).json({ message: 'Đã đánh dấu tất cả thông báo là đã đọc' });
+            }
 
             await ModelSupportCustomerNotification.updateMany(
                 {
                     isRead: false,
-                    $or: [
-                        ...(userId ? [{ customerUserId: userId }] : []),
-                        ...(phone ? [{ phone }] : []),
-                        ...(email ? [{ email }] : []),
-                    ],
+                    ...notificationQuery,
                 },
                 { isRead: true },
             );

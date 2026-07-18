@@ -16,7 +16,10 @@ const cx = classNames.bind(styles);
 function AskStaff() {
     const navigate = useNavigate();
     const [questions, setQuestions] = useState([]);
+    const [title, setTitle] = useState('');
     const [question, setQuestion] = useState('');
+    const [specialty, setSpecialty] = useState('');
+    const [severity, setSeverity] = useState('mild');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [activeChatId, setActiveChatId] = useState(null);
@@ -51,11 +54,17 @@ function AskStaff() {
         try {
             setSubmitting(true);
             const res = await request.post('/api/doctor-inbox/ask', {
+                title: title.trim() || question.trim().slice(0, 80),
                 question: question.trim(),
+                specialty: specialty.trim(),
+                severity,
                 targetRole: 'staff',
             });
             toast.success(res?.data?.message || 'Đã gửi câu hỏi');
+            setTitle('');
             setQuestion('');
+            setSpecialty('');
+            setSeverity('mild');
             await fetchQuestions();
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Gửi câu hỏi thất bại');
@@ -65,10 +74,23 @@ function AskStaff() {
     };
 
     const openChat = (item) => {
-        if (item.status !== 'answered' && !item.escalatedToDoctor) return;
+        const canOpen =
+            item.status === 'answered' ||
+            item.escalatedToDoctor ||
+            item.workflowStatus === 'WAITING_CUSTOMER_INFORMATION' ||
+            item.workflowStatus === 'TRANSFERRED_BACK' ||
+            item.workflowStatus === 'REJECTED';
+        if (!canOpen) return;
         setActiveChatId(item._id);
         setActiveChatPartner(item.answeredByName || 'Nhân viên');
     };
+
+    const canOpenChat = (item) =>
+        item.status === 'answered' ||
+        item.escalatedToDoctor ||
+        item.workflowStatus === 'WAITING_CUSTOMER_INFORMATION' ||
+        item.workflowStatus === 'TRANSFERRED_BACK' ||
+        item.workflowStatus === 'REJECTED';
 
     const closeChat = () => {
         setActiveChatId(null);
@@ -108,7 +130,37 @@ function AskStaff() {
                     ) : (
                         <>
                     <div className={cx('askCard')}>
-                        <label htmlFor="ask-staff-question">Câu hỏi của bạn</label>
+                        <label htmlFor="ask-staff-title">Tiêu đề</label>
+                        <input
+                            id="ask-staff-title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="VD: Tra cứu đơn hàng"
+                            disabled={submitting}
+                            style={{ width: '100%', marginBottom: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid #d8e2d4' }}
+                        />
+                        <label htmlFor="ask-staff-specialty">Chủ đề / chuyên môn (nếu có)</label>
+                        <input
+                            id="ask-staff-specialty"
+                            value={specialty}
+                            onChange={(e) => setSpecialty(e.target.value)}
+                            placeholder="VD: Đơn hàng, vận chuyển..."
+                            disabled={submitting}
+                            style={{ width: '100%', marginBottom: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid #d8e2d4' }}
+                        />
+                        <label htmlFor="ask-staff-severity">Mức độ</label>
+                        <select
+                            id="ask-staff-severity"
+                            value={severity}
+                            onChange={(e) => setSeverity(e.target.value)}
+                            disabled={submitting}
+                            style={{ width: '100%', marginBottom: 12, padding: '10px 12px', borderRadius: 8, border: '1px solid #d8e2d4' }}
+                        >
+                            <option value="mild">Thường</option>
+                            <option value="moderate">Ưu tiên</option>
+                            <option value="severe">Khẩn</option>
+                        </select>
+                        <label htmlFor="ask-staff-question">Nội dung câu hỏi</label>
                         <textarea
                             id="ask-staff-question"
                             value={question}
@@ -147,24 +199,25 @@ function AskStaff() {
                                 <div
                                     key={item._id}
                                     className={cx('qaItem', item.status, {
-                                        clickable: item.status === 'answered' || item.escalatedToDoctor,
+                                        clickable: canOpenChat(item),
                                     })}
                                     onClick={() => openChat(item)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') openChat(item);
                                     }}
-                                    role={item.status === 'answered' ? 'button' : undefined}
-                                    tabIndex={item.status === 'answered' ? 0 : undefined}
+                                    role={canOpenChat(item) ? 'button' : undefined}
+                                    tabIndex={canOpenChat(item) ? 0 : undefined}
                                 >
                                     <div className={cx('qaHead')}>
                                     <span
                                         className={cx('badge', item.escalatedToDoctor ? 'escalated' : item.status)}
                                     >
-                                        {item.escalatedToDoctor
-                                            ? 'Bác sĩ tham gia'
-                                            : item.status === 'answered'
-                                              ? 'Đã trả lời'
-                                              : 'Chờ nhân viên'}
+                                        {item.workflowStatusLabel ||
+                                            (item.escalatedToDoctor
+                                                ? 'Bác sĩ tham gia'
+                                                : item.status === 'answered'
+                                                  ? 'Đã trả lời'
+                                                  : 'Chờ nhân viên')}
                                     </span>
                                         <span className={cx('date')}>
                                             {item.createdAt
@@ -173,9 +226,9 @@ function AskStaff() {
                                         </span>
                                     </div>
                                     <p className={cx('question')}>
-                                        <strong>Bạn hỏi:</strong> {item.question}
+                                        <strong>{item.title || 'Bạn hỏi'}:</strong> {item.question}
                                     </p>
-                                    {item.status === 'answered' || item.escalatedToDoctor ? (
+                                    {canOpenChat(item) ? (
                                         <div className={cx('answer')}>
                                             <strong>
                                                 Trả lời từ{' '}

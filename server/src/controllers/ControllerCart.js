@@ -1,6 +1,7 @@
 const modelCart = require('../models/ModelCart');
 const modelUser = require('../models/ModelUser');
 const ModelVoucher = require('../models/ModelVoucher');
+const ModelProducts = require('../models/ModelProducts');
 const {
     SHIPPING_FEE,
     getVoucherAvailabilityError,
@@ -9,6 +10,17 @@ const {
     isVoucherExpired,
     isVoucherOutOfStock,
 } = require('../utils/voucherHelpers');
+
+async function resolveCatalogProduct({ productId, nameProduct }) {
+    let product = null;
+    if (productId) {
+        product = await ModelProducts.findById(productId).lean();
+    }
+    if (!product && nameProduct) {
+        product = await ModelProducts.findOne({ name: String(nameProduct).trim() }).lean();
+    }
+    return product;
+}
 
 // Hàm để tính toán và áp dụng voucher cho giỏ hàng
 const resetCartVoucher = (cart) => {
@@ -51,13 +63,29 @@ class ControllerCart {
                 });
             }
 
-            const { nameProduct, quantityProduct, priceProduct, imgProduct, size, type } = req.body;
+            const { nameProduct, quantityProduct, priceProduct, imgProduct, size, type, productId } = req.body;
 
-            if (!nameProduct || !quantityProduct || !priceProduct || !imgProduct || !type) {
+            if (!nameProduct || !quantityProduct || !imgProduct || type === undefined || type === null) {
                 return res.status(400).json({
                     message: 'Dữ liệu không đầy đủ!',
                 });
             }
+
+            const catalog = await resolveCatalogProduct({ productId, nameProduct });
+            if (!catalog) {
+                return res.status(404).json({ message: 'Không tìm thấy sản phẩm trong hệ thống' });
+            }
+
+            const unitPrice = Number(catalog.price);
+            if (!unitPrice || unitPrice <= 0) {
+                return res.status(400).json({ message: 'Giá sản phẩm không hợp lệ' });
+            }
+
+            const qty = Math.max(1, Number(quantityProduct) || 1);
+            const lineImg = Array.isArray(catalog.img) ? catalog.img[0] : imgProduct;
+            const lineName = catalog.name || nameProduct;
+            const lineType = catalog.type ?? type;
+            const catalogId = String(catalog._id);
 
             const dataUser = await modelCart.findOne({ user: user.email });
             const dataUser2 = await modelUser.findOne({ email: user.email });
@@ -68,16 +96,17 @@ class ControllerCart {
                     {
                         $push: {
                             products: {
-                                nameProduct,
-                                quantity: quantityProduct,
-                                price: priceProduct,
+                                productId: catalogId,
+                                nameProduct: lineName,
+                                quantity: qty,
+                                price: unitPrice,
                                 size,
-                                img: imgProduct,
-                                type,
+                                img: lineImg,
+                                type: lineType,
                             },
                         },
                         $inc: {
-                            sumprice: priceProduct * quantityProduct,
+                            sumprice: unitPrice * qty,
                         },
                     },
                     { new: true },
@@ -92,15 +121,16 @@ class ControllerCart {
                 const newCart = new modelCart({
                     products: [
                         {
-                            nameProduct,
-                            quantity: quantityProduct,
-                            price: priceProduct,
+                            productId: catalogId,
+                            nameProduct: lineName,
+                            quantity: qty,
+                            price: unitPrice,
                             size,
-                            img: imgProduct,
-                            type,
+                            img: lineImg,
+                            type: lineType,
                         },
                     ],
-                    sumprice: priceProduct * quantityProduct,
+                    sumprice: unitPrice * qty,
                     user: user.email,
                     phone: dataUser2?.phone || 0,
                 });

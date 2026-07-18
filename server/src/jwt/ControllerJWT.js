@@ -280,7 +280,7 @@ const ControllerJWT = {
                 });
             }
 
-            if (findUser.role !== 'doctor' && findUser.isAdmin !== true) {
+            if (findUser.role !== 'doctor') {
                 return res.status(403).json({
                     success: false,
                     message: 'Bạn không có quyền truy cập trang Bác sĩ',
@@ -336,7 +336,7 @@ const ControllerJWT = {
                 });
             }
 
-            if (findUser.role !== 'shipper' && findUser.isAdmin !== true) {
+            if (findUser.role !== 'shipper') {
                 return res.status(403).json({
                     success: false,
                     message: 'Bạn không có quyền truy cập trang shipper',

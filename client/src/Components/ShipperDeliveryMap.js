@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import classNames from 'classnames/bind';
 import styles from '../Styles/ShipperDeliveryMap.module.scss';
+import { resolveDeliveryStatus, getDeliveryStatusInfo } from '../utils/deliveryStatus';
 
 const cx = classNames.bind(styles);
 
@@ -90,8 +91,20 @@ function getOrderAddress(order) {
 
 function getActiveDeliveryOrders(orders) {
     return orders.filter((order) => {
+        if (!order?.shipperId) return false;
+        const ds = resolveDeliveryStatus(order);
+        if (ds) {
+            return [
+                'ASSIGNED',
+                'ACCEPTED',
+                'DELIVERING',
+                'FIRST_DELIVERY_FAILED',
+                'REDELIVERING',
+                'RETURNING',
+            ].includes(ds);
+        }
         const status = String(order?.status || '').toLowerCase();
-        return status === 'confirmed' || status === 'shipping' || status === 'returning';
+        return status === 'confirmed' || status === 'shipping' || status === 'returning' || status === 'picking';
     });
 }
 
@@ -117,7 +130,7 @@ function ShipperDeliveryMap({ shippers = [], orders = [] }) {
             if (!position || currentRequest !== requestId.current) continue;
 
             seenAddresses.add(address);
-            const status = String(order?.status || '').toLowerCase();
+            const info = getDeliveryStatusInfo(order);
 
             nextMarkers.push({
                 id: `delivery-${order._id}`,
@@ -125,14 +138,7 @@ function ShipperDeliveryMap({ shippers = [], orders = [] }) {
                 position,
                 title: order?.shipperName ? `Đơn #${String(order._id).slice(-6)}` : 'Điểm giao hàng',
                 subtitle: address,
-                meta:
-                    status === 'shipping'
-                        ? 'Đang giao'
-                        : status === 'returning'
-                          ? 'Đang hoàn'
-                          : order?.shipperName
-                            ? `Shipper: ${order.shipperName}`
-                            : 'Chờ giao',
+                meta: info.label || (order?.shipperName ? `Shipper: ${order.shipperName}` : 'Chờ giao'),
             });
         }
 

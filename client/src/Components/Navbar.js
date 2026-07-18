@@ -9,13 +9,13 @@ function Navbar({ props }) {
             {props.map((item) => (
                 <span key={item._id}>
                     Trang Chủ /{' '}
-                    {item.type == '1'
+                    {item.type === '1'
                         ? 'Dụng cụ massage'
-                        : item.type == '2'
+                        : item.type === '2'
                           ? 'Dưỡng sinh ngải cứu'
-                          : item.type == '3'
+                          : item.type === '3'
                             ? 'Tinh dầu & thảo dược'
-                            : item.type == '4'
+                            : item.type === '4'
                               ? 'Chăm sóc tóc & da đầu'
                               : ''}{' '}
                     / {item.name}

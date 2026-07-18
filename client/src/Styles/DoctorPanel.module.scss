@@ -1,9 +1,32 @@
 .doctorPage {
-    padding: 24px;
+    padding: 20px 22px 24px;
     background: #fff;
+    border: 1px solid #e5ebe3;
+    border-radius: 16px;
     min-height: 100%;
     box-sizing: border-box;
     color: #233021;
+}
+
+.pageTitle {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+    color: #1d2b1f;
+}
+
+.pageDesc {
+    margin: 0 0 24px;
+    color: #6f7d6a;
+    font-size: 15px;
+}
+
+.statusCard {
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid #e5ebe3;
+    background: #f8fbf7;
 }
 
 .pageTitle {
@@ -348,12 +371,39 @@
     padding: 8px 16px;
     font-weight: 600;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 
     &.active {
         background: #2f6f3e;
         border-color: #2f6f3e;
         color: #fff;
+
+        .filterBadge {
+            background: rgba(255, 255, 255, 0.22);
+            color: #fff;
+        }
     }
+}
+
+.filterBadge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #e8f0df;
+    color: #2f6f3e;
+    font-size: 12px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qaItem.hasUnread {
+    border-color: #c8dfbd;
+    box-shadow: 0 0 0 1px rgba(47, 111, 62, 0.08);
 }
 
 .inboxMeta {
@@ -378,9 +428,145 @@
         color: #9a7b1a;
     }
 
+    &.unreadBadge {
+        background: #e53935;
+        color: #fff;
+    }
+
     &.escalated {
         background: #eff6ff;
         color: #1d4ed8;
+    }
+
+    &.urgentBadge {
+        background: #fff1f0;
+        color: #c62828;
+        border: 1px solid #ffc9c4;
+    }
+}
+
+.overviewGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.overviewCard {
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid #e5ebe3;
+    background: #f8fbf7;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &.warn {
+        background: #fff8e6;
+        border-color: #f0d58a;
+    }
+
+    &.ok {
+        background: #eefaf0;
+        border-color: #9fd4a8;
+    }
+
+    &.danger {
+        background: #fff1f0;
+        border-color: #ffc9c4;
+    }
+}
+
+.overviewLabel {
+    font-size: 13px;
+    color: #6f7d6a;
+    font-weight: 600;
+}
+
+.overviewValue {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1d2b1f;
+}
+
+.overviewSection {
+    margin-top: 8px;
+}
+
+.overviewSectionHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+
+    h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+}
+
+.qaItem.urgentItem {
+    border-color: #ffc9c4;
+    background: #fffafa;
+}
+
+.searchRow {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.searchInput {
+    flex: 1;
+    min-width: 220px;
+    border: 1px solid #d8e2d4;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+}
+
+.actionBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.dangerBtn {
+    border: 1px solid #efb4b4;
+    background: #fff1f1;
+    color: #b42318;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.warnBtn {
+    border: 1px solid #f0d58a;
+    background: #fff9e8;
+    color: #9a7b1a;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.aiDisclaimer {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fff8e6;
+    border: 1px solid #f0d58a;
+    color: #7a5d12;
+    font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+    .overviewGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -410,6 +596,10 @@
 
 @media (max-width: 768px) {
     .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .overviewGrid {
         grid-template-columns: 1fr;
     }
 }

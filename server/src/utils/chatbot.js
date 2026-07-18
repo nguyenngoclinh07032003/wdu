@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('../Config/loadEnv');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const modelProduct = require('../models/ModelProducts');
 const ModelChatHistory = require('../models/ModelChatHistory');
@@ -10,22 +10,22 @@ const FACEBOOK_URL =
     process.env.FACEBOOK_URL || 'https://www.facebook.com/profile.php?id=61589897113612';
 const ZALO_URL = process.env.ZALO_URL || 'https://zalo.me/0986003022';
 const HOTLINE = process.env.HOTLINE || '0986 003 022';
-// Warn instead of exiting; allow server to run even if key is absent.
+
+let genAI = null;
+let model = null;
+
 if (!apiKey) {
     console.warn('⚠️ Warning: GEMINI_API_KEY missing in .env – chatbot functionality will be disabled');
+} else if (/[^\x00-\x7F]/.test(apiKey)) {
+    console.warn(
+        '⚠️ Warning: Invalid Gemini API key – contains non-ASCII characters. Chatbot may not work properly',
+    );
+} else {
+    genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite' });
+    console.log('✓ GEMINI_API_KEY loaded');
+    console.log('✓ Gemini client initialized with model:', process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite');
 }
-
-if (apiKey && /[^\x00-\x7F]/.test(apiKey)) {
-    console.warn('⚠️ Warning: Invalid Gemini API key – contains non-ASCII characters. Chatbot may not work properly');
-}
-
-console.log('✓ GEMINI_API_KEY loaded:', apiKey.slice(0, 10) + '...' + apiKey.slice(-10));
-
-// Initialize Gemini client
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite' });
-console.log('✓ Gemini client initialized with model:', process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite');
-
 const WEB_BASE = 'http://localhost:3000';
 const UPLOAD_BASE = 'http://localhost:5001/uploads';
 
@@ -153,6 +153,9 @@ function extractJsonAction(text = '') {
 
 // Run chatbot tool based on action
 async function generateWithRetry(content, retries = 2) {
+    if (!genAI) {
+        throw new Error('Gemini client is not configured');
+    }
     const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     const currentModel = genAI.getGenerativeModel({ model: modelName });
 

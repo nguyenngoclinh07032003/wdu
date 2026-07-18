@@ -7,8 +7,10 @@ const ModelProducts = require('../models/ModelProducts');
 const ModelVoucher = require('../models/ModelVoucher');
 const sendMailOrder = require('../SendMail/SendMailOrder');
 const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnpay');
-const { getVoucherAvailabilityError, consumeVoucher, releaseVoucher } = require('../utils/voucherHelpers');
+const { getVoucherAvailabilityError, consumeVoucher, releaseVoucher, calculateVoucherDiscount, buildCartVoucherPayload, SHIPPING_FEE } = require('../utils/voucherHelpers');
 const { applyOrderStatusSideEffects } = require('../utils/orderStatusEffects');
+const { reserveStockForProducts, releaseStockForOrder } = require('../utils/inventory');
+const { buildOwnedOrderFilter } = require('../utils/orderOwnership');
 
 require('dotenv').config();
 
@@ -107,6 +109,77 @@ class ControllerPayments {
         return ModelCart.findOne({ user: email });
     };
 
+    /** Đồng bộ giá dòng giỏ từ catalog — không tin giá client */
+    repriceCartFromCatalog = async (cart) => {
+        if (!cart?.products?.length) {
+            const err = new Error('Cart is empty');
+            err.statusCode = 404;
+            throw err;
+        }
+
+        let sum = 0;
+        for (const line of cart.products) {
+            let catalog = null;
+            if (line.productId) {
+                catalog = await ModelProducts.findById(line.productId).lean();
+            }
+            if (!catalog && line.nameProduct) {
+                catalog = await ModelProducts.findOne({ name: String(line.nameProduct).trim() }).lean();
+            }
+            if (!catalog) {
+                const err = new Error(`Sản phẩm không còn bán: ${line.nameProduct || 'unknown'}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            const unitPrice = Number(catalog.price);
+            if (!unitPrice || unitPrice <= 0) {
+                const err = new Error(`Giá sản phẩm không hợp lệ: ${catalog.name}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            line.productId = String(catalog._id);
+            line.nameProduct = catalog.name;
+            line.price = unitPrice;
+            if (Array.isArray(catalog.img) && catalog.img[0]) {
+                line.img = catalog.img[0];
+            }
+            line.type = catalog.type ?? line.type;
+            sum += unitPrice * (Number(line.quantity) || 0);
+        }
+
+        cart.sumprice = sum;
+        cart.markModified('products');
+
+        // Tính lại discount voucher theo giá catalog mới
+        if (cart.voucher?.code) {
+            const voucher = await ModelVoucher.findOne({
+                code: String(cart.voucher.code).trim().toUpperCase(),
+            });
+            const shippingFee = Number(process.env.ORDER_SHIPPING_FEE || SHIPPING_FEE);
+            const availabilityError = getVoucherAvailabilityError(voucher, { orderTotal: cart.sumprice });
+            if (availabilityError || !voucher) {
+                cart.voucher = {
+                    code: '',
+                    title: '',
+                    category: 'device',
+                    discountType: 'money',
+                    discountValue: 0,
+                    discountAmount: 0,
+                };
+            } else {
+                const discountAmount = calculateVoucherDiscount(voucher, {
+                    orderTotal: cart.sumprice,
+                    shippingFee,
+                });
+                cart.voucher = buildCartVoucherPayload(voucher, discountAmount);
+            }
+            cart.markModified('voucher');
+        }
+
+        await cart.save();
+        return cart;
+    };
+
     updateCartShippingInfo = async (cart, { name, phone, address }) => {
         let changed = false;
 
@@ -146,6 +219,7 @@ class ControllerPayments {
         paymentStatus = 'unpaid',
         gatewayOrderId = '',
         gatewayTxnRef = '',
+        stockReserved = false,
     }) => {
         const amounts = this.calculateCartAmounts(cart);
 
@@ -171,13 +245,15 @@ class ControllerPayments {
             paymentMethod,
             paymentStatus,
             status,
+            stockReserved: !!stockReserved,
 
             userId,
+            // `user` = account email (ownership). `email` = shipping contact (may differ).
             user: email,
             address: address || cart.address || '',
             phone: phone || cart.phone || '',
             username: fullname || cart.name || cart.username || '',
-            email: contactEmail || '',
+            email: contactEmail || email || '',
             note: note || '',
 
             gatewayOrderId,
@@ -234,6 +310,49 @@ class ControllerPayments {
         await releaseVoucher(order.voucher.code);
         order.voucherConsumed = false;
     };
+
+    markPaidOrderRefunded = (order) => {
+        const method = String(order.paymentMethod || '')
+            .trim()
+            .toUpperCase();
+        if (order.paymentStatus === 'paid' && ['MOMO', 'VNPAY'].includes(method)) {
+            order.paymentStatus = 'refunded';
+            order.refundedAt = new Date();
+        }
+    };
+
+    reserveCartStock = async (cart) => {
+        await reserveStockForProducts(cart.products || []);
+    };
+
+    assertCartStockAvailable = async (cart) => {
+        const ModelProducts = require('../models/ModelProducts');
+        const { LEGACY_DEFAULT_STOCK } = require('../utils/inventory');
+        for (const line of cart.products || []) {
+            const qty = Number(line.quantity) || 0;
+            if (qty <= 0) continue;
+            let product = null;
+            if (line.productId) {
+                product = await ModelProducts.findById(line.productId);
+            } else if (line.nameProduct) {
+                product = await ModelProducts.findOne({ name: String(line.nameProduct).trim() });
+            }
+            if (!product) {
+                const err = new Error(`Sản phẩm không tồn tại: ${line.nameProduct || ''}`);
+                err.statusCode = 400;
+                throw err;
+            }
+            if (typeof product.stock !== 'number') {
+                product.stock = LEGACY_DEFAULT_STOCK;
+                await product.save();
+            }
+            if (product.stock < qty) {
+                const err = new Error(`Không đủ tồn kho: ${product.name}`);
+                err.statusCode = 400;
+                throw err;
+            }
+        }
+    };
     //------------------------------MOMO------------------------------
 
     PaymentsMomo = async (req, res) => {
@@ -246,6 +365,12 @@ class ControllerPayments {
             const cart = await this.getCartByUserEmail(user.email);
             if (!cart || !cart.products?.length) {
                 return res.status(404).json({ message: 'Giỏ hàng trống' });
+            }
+
+            try {
+                await this.repriceCartFromCatalog(cart);
+            } catch (priceErr) {
+                return res.status(priceErr.statusCode || 400).json({ message: priceErr.message });
             }
 
             const shippingInfo = this.normalizeShippingInfo({
@@ -264,6 +389,12 @@ class ControllerPayments {
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
                 return res.status(400).json({ message: voucherError });
+            }
+
+            try {
+                await this.assertCartStockAvailable(cart);
+            } catch (stockErr) {
+                return res.status(stockErr.statusCode || 400).json({ message: stockErr.message });
             }
 
             const amounts = this.calculateCartAmounts(cart);
@@ -362,6 +493,12 @@ class ControllerPayments {
                 return res.status(404).json({ message: 'Giỏ hàng trống' });
             }
 
+            try {
+                await this.repriceCartFromCatalog(cart);
+            } catch (priceErr) {
+                return res.status(priceErr.statusCode || 400).json({ message: priceErr.message });
+            }
+
             const shippingInfo = this.normalizeShippingInfo({
                 body: req.body,
                 cart,
@@ -378,6 +515,12 @@ class ControllerPayments {
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
                 return res.status(400).json({ message: voucherError });
+            }
+
+            try {
+                await this.assertCartStockAvailable(cart);
+            } catch (stockErr) {
+                return res.status(stockErr.statusCode || 400).json({ message: stockErr.message });
             }
 
             const amounts = this.calculateCartAmounts(cart);
@@ -418,13 +561,31 @@ class ControllerPayments {
 
     checkPaymentVnpay = async (req, res) => {
         try {
-            const { vnp_ResponseCode, vnp_OrderInfo, vnp_TxnRef } = req.query;
+            const redirectBase = process.env.REACT_APP_URL_DOMAIN || process.env.REACT_APP_URL;
 
-            if (vnp_ResponseCode !== '00') {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments`);
+            const vnpay = new VNPay({
+                tmnCode: process.env.VNPAY_TMN_CODE,
+                secureSecret: process.env.VNPAY_HASH_SECRET,
+                vnpayHost: process.env.VNPAY_HOST || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+                testMode: true,
+                hashAlgorithm: 'SHA512',
+                loggerFn: ignoreLogger,
+            });
+
+            let verified;
+            try {
+                verified = vnpay.verifyReturnUrl({ ...req.query });
+            } catch (verifyErr) {
+                console.error('VNPay verify error:', verifyErr.message);
+                return res.redirect(`${redirectBase}/payments`);
             }
 
-            const cartId = vnp_OrderInfo;
+            if (!verified?.isVerified || !verified?.isSuccess) {
+                return res.redirect(`${redirectBase}/payments`);
+            }
+
+            const cartId = req.query.vnp_OrderInfo;
+            const vnp_TxnRef = req.query.vnp_TxnRef;
 
             const existingPayment = await this.hasProcessedPayment({
                 paymentMethod: 'VNPAY',
@@ -432,18 +593,49 @@ class ControllerPayments {
             });
 
             if (existingPayment) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/paymentsuccess`);
+                return res.redirect(`${redirectBase}/paymentsuccess`);
             }
 
             const cart = await ModelCart.findOne({ _id: cartId });
             if (!cart || !cart.products?.length) {
-                return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/payments`);
+                return res.redirect(`${redirectBase}/payments`);
+            }
+
+            try {
+                await this.repriceCartFromCatalog(cart);
+            } catch (priceErr) {
+                return res.redirect(
+                    `${redirectBase}/payments?error=${encodeURIComponent(priceErr.message)}`,
+                );
             }
 
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
                 return res.redirect(
-                    `${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherError)}`,
+                    `${redirectBase}/payments?error=${encodeURIComponent(voucherError)}`,
+                );
+            }
+
+            const amounts = this.calculateCartAmounts(cart);
+            const paidRaw = Number(req.query.vnp_Amount);
+            const expected = Number(amounts.total);
+            // VNPay thường gửi amount * 100; thư viện có thể đã chuẩn hóa
+            const amountOk =
+                paidRaw === expected ||
+                paidRaw === Math.round(expected * 100) ||
+                Math.round(paidRaw / 100) === expected;
+            if (!amountOk) {
+                console.error('VNPay amount mismatch', { paidRaw, expected });
+                return res.redirect(
+                    `${redirectBase}/payments?error=${encodeURIComponent('Số tiền thanh toán không khớp')}`,
+                );
+            }
+
+            try {
+                await this.reserveCartStock(cart);
+            } catch (stockErr) {
+                return res.redirect(
+                    `${redirectBase}/payments?error=${encodeURIComponent(stockErr.message)}`,
                 );
             }
 
@@ -463,12 +655,13 @@ class ControllerPayments {
                 status: 'pending',
                 gatewayTxnRef: vnp_TxnRef,
                 gatewayOrderId: String(cartId),
+                stockReserved: true,
             });
 
             const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
             if (!voucherResult.ok) {
                 return res.redirect(
-                    `${process.env.REACT_APP_URL_DOMAIN}/payments?error=${encodeURIComponent(voucherResult.message)}`,
+                    `${redirectBase}/payments?error=${encodeURIComponent(voucherResult.message)}`,
                 );
             }
 
@@ -477,7 +670,7 @@ class ControllerPayments {
 
             this.sendOrderMailAsync(cart.user);
 
-            return res.redirect(`${process.env.REACT_APP_URL_DOMAIN}/paymentsuccess`);
+            return res.redirect(`${redirectBase}/paymentsuccess`);
         } catch (error) {
             console.error('checkPaymentVnpay error:', error.message);
             return res.status(500).json({ message: 'Internal Server Error' });
@@ -584,9 +777,29 @@ class ControllerPayments {
                 return finishFailure('Cart is empty or not found', 404);
             }
 
+            try {
+                await this.repriceCartFromCatalog(cart);
+            } catch (priceErr) {
+                return finishFailure(priceErr.message, priceErr.statusCode || 400);
+            }
+
             const voucherError = await this.validateCartVoucherBeforeCheckout(cart);
             if (voucherError) {
                 return finishFailure(voucherError);
+            }
+
+            const amounts = this.calculateCartAmounts(cart);
+            const paidAmount = Number(amount);
+            const expected = Number(amounts.total);
+            if (!Number.isFinite(paidAmount) || paidAmount !== expected) {
+                console.error('MoMo amount mismatch', { paidAmount, expected });
+                return finishFailure('Số tiền thanh toán không khớp', 400);
+            }
+
+            try {
+                await this.reserveCartStock(cart);
+            } catch (stockErr) {
+                return finishFailure(stockErr.message, stockErr.statusCode || 400);
             }
 
             let parsedExtraData = {};
@@ -612,6 +825,7 @@ class ControllerPayments {
                 status: 'pending',
                 gatewayOrderId: orderId,
                 gatewayTxnRef: requestId,
+                stockReserved: true,
             });
 
             const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
@@ -641,9 +855,7 @@ class ControllerPayments {
                 });
             }
 
-            const data = await ModelPayment.find({
-                $or: [{ userId: user.id || user._id }, { user: user.email }, { email: user.email }],
-            })
+            const data = await ModelPayment.find(buildOwnedOrderFilter(user))
                 .sort({ createdAt: -1 })
                 .lean();
 
@@ -669,6 +881,12 @@ class ControllerPayments {
                 return res.status(404).json({ message: 'Cart is empty' });
             }
 
+            try {
+                await this.repriceCartFromCatalog(cart);
+            } catch (priceErr) {
+                return res.status(priceErr.statusCode || 400).json({ message: priceErr.message });
+            }
+
             const shippingInfo = this.normalizeShippingInfo({
                 body: req.body,
                 cart,
@@ -687,6 +905,12 @@ class ControllerPayments {
                 return res.status(400).json({ message: voucherError });
             }
 
+            try {
+                await this.reserveCartStock(cart);
+            } catch (stockErr) {
+                return res.status(stockErr.statusCode || 400).json({ message: stockErr.message });
+            }
+
             const userData = await ModelUser.findOne({ email: user.email }).lean();
 
             const newPayment = this.buildPaymentFromCart({
@@ -701,7 +925,8 @@ class ControllerPayments {
                 contactEmail: shippingInfo.email,
                 note: shippingInfo.note,
                 status: 'pending',
-                gatewayOrderId: `COD_${Date.now()}`,
+                gatewayOrderId: `COD_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                stockReserved: true,
             });
 
             const voucherResult = await this.finalizeOrderVoucher(cart, newPayment);
@@ -735,9 +960,7 @@ class ControllerPayments {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
 
-            const data = await ModelPayment.find({
-                $or: [{ userId: user.id || user._id }, { user: user.email }, { email: user.email }],
-            })
+            const data = await ModelPayment.find(buildOwnedOrderFilter(user))
                 .sort({ createdAt: -1 })
                 .lean();
 
@@ -790,7 +1013,7 @@ class ControllerPayments {
 
             const order = await ModelPayment.findOne({
                 _id: id,
-                $or: [{ userId: user.id || user._id }, { user: user.email }, { email: user.email }],
+                ...buildOwnedOrderFilter(user),
             });
 
             if (!order) {
@@ -821,7 +1044,11 @@ class ControllerPayments {
             order.cancelledAt = new Date();
             order.updatedAt = new Date();
 
+            this.markPaidOrderRefunded(order);
             await this.releaseOrderVoucher(order);
+            if (order.stockReserved && !order.stockReleased) {
+                await releaseStockForOrder(order);
+            }
             await order.save();
 
             return res.status(200).json({
@@ -866,10 +1093,44 @@ class ControllerPayments {
                 return res.status(400).json({ message: 'Đơn hàng đã bị hủy trước đó' });
             }
 
+            const activeDelivery = [
+                'ASSIGNED',
+                'ACCEPTED',
+                'DELIVERING',
+                'FIRST_DELIVERY_FAILED',
+                'REDELIVERING',
+                'RETURNING',
+                'DELIVERED',
+                'DELIVERED_AFTER_RETRY',
+                'RETURNED',
+            ];
+
+            if (order.deliveryStatus && activeDelivery.includes(order.deliveryStatus)) {
+                if (['DELIVERED', 'DELIVERED_AFTER_RETRY', 'RETURNED'].includes(order.deliveryStatus)) {
+                    return res.status(400).json({
+                        message: 'Đơn đã hoàn tất giao hàng / hoàn hàng, không thể hủy',
+                    });
+                }
+                return res.status(400).json({
+                    message:
+                        'Đơn đang trong quy trình giao hàng. Không hủy tùy ý — dùng hoàn hàng hoặc để shipper cập nhật kết quả.',
+                });
+            }
+
+            if (['shipping', 'failed', 'returning', 'returned'].includes(currentStatus)) {
+                return res.status(400).json({
+                    message: 'Đơn đang giao / hoàn hàng, không thể hủy. Hãy dùng quy trình giao hàng.',
+                });
+            }
+
             order.status = 'cancelled';
             order.updatedAt = new Date();
 
+            this.markPaidOrderRefunded(order);
             await this.releaseOrderVoucher(order);
+            if (order.stockReserved && !order.stockReleased) {
+                await releaseStockForOrder(order);
+            }
             await order.save();
 
             return res.status(200).json({
@@ -935,6 +1196,55 @@ class ControllerPayments {
                     message: 'Không tìm thấy đơn hàng',
                     order: null,
                 });
+            }
+
+            // Không cho staff/admin tự chuyển shipping/completed — phải qua shipper/deliveryStatus
+            if (['shipping', 'completed', 'failed', 'returning', 'returned'].includes(nextStatus)) {
+                return res.status(403).json({
+                    message:
+                        'Trạng thái giao hàng chỉ cập nhật qua shipper / quy trình deliveryStatus (không sửa tay tại đây).',
+                    order: null,
+                });
+            }
+
+            // Không cho hủy bằng EditOrder khi đơn đã vào luồng giao hàng
+            if (order.deliveryStatus && nextStatus === 'cancelled') {
+                return res.status(403).json({
+                    message:
+                        'Không hủy đơn đang trong quy trình giao hàng. Dùng hoàn hàng hoặc để shipper cập nhật kết quả.',
+                    order: null,
+                });
+            }
+
+            // Lock shipper-owned delivery results — only allow confirm return via dedicated API
+            if (order.deliveryStatus) {
+                const lockedResults = [
+                    'DELIVERING',
+                    'DELIVERED',
+                    'FIRST_DELIVERY_FAILED',
+                    'REDELIVERING',
+                    'DELIVERED_AFTER_RETRY',
+                    'RETURNING',
+                    'RETURNED',
+                    'ACCEPTED',
+                    'ASSIGNED',
+                ];
+
+                if (lockedResults.includes(order.deliveryStatus)) {
+                    if (order.deliveryStatus === 'RETURNING' && nextStatus === 'returned') {
+                        return res.status(400).json({
+                            message:
+                                'Vui lòng dùng API xác nhận hoàn hàng (confirm-return) để chuyển sang Đã hoàn hàng',
+                            order: null,
+                        });
+                    }
+
+                    return res.status(403).json({
+                        message:
+                            'Không được sửa kết quả giao hàng của shipper tại đây. Chỉ shipper cập nhật kết quả; Admin/Staff xác nhận hoàn hàng qua chức năng riêng.',
+                        order: null,
+                    });
+                }
             }
 
             const currentStatus = String(order.status || 'pending')

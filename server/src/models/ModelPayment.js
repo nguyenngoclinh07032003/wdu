@@ -45,6 +45,9 @@ const modelPayment = new Schema({
     },
 
     voucherConsumed: { type: Boolean, default: false },
+    stockReserved: { type: Boolean, default: false },
+    stockReleased: { type: Boolean, default: false },
+    refundedAt: { type: Date, default: null },
 
     paymentMethod: {
         type: String,
@@ -60,9 +63,71 @@ const modelPayment = new Schema({
 
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'shipping', 'completed', 'failed', 'returning', 'returned', 'cancelled'],
+        enum: [
+            'pending',
+            'confirmed',
+            'picking',
+            'shipping',
+            'completed',
+            'failed',
+            'returning',
+            'returned',
+            'cancelled',
+        ],
         default: 'pending',
     },
+
+    deliveryStatus: {
+        type: String,
+        enum: [
+            'ASSIGNED',
+            'ACCEPTED',
+            'DELIVERING',
+            'DELIVERED',
+            'FIRST_DELIVERY_FAILED',
+            'REDELIVERING',
+            'DELIVERED_AFTER_RETRY',
+            'RETURNING',
+            'RETURNED',
+        ],
+    },
+
+    deliveryAttempt: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 2,
+    },
+
+    firstFailureReason: { type: String, default: '' },
+    firstFailureNote: { type: String, default: '' },
+    firstFailureTime: { type: Date, default: null },
+    firstFailureEvidence: { type: String, default: '' },
+    redeliveryScheduledAt: { type: Date, default: null },
+
+    secondFailureReason: { type: String, default: '' },
+    secondFailureNote: { type: String, default: '' },
+    secondFailureTime: { type: Date, default: null },
+    secondFailureEvidence: { type: String, default: '' },
+
+    deliveredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        default: null,
+    },
+    deliverySuccessAttempt: {
+        type: Number,
+        default: null,
+    },
+    returnedAt: { type: Date, default: null },
+    returnConfirmedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+        default: null,
+    },
+    failedAt: { type: Date, default: null },
+    returningAt: { type: Date, default: null },
+    deliveryNote: { type: String, default: '' },
 
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -117,5 +182,14 @@ const modelPayment = new Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });
+
+modelPayment.index(
+    { gatewayTxnRef: 1 },
+    { unique: true, sparse: true, partialFilterExpression: { gatewayTxnRef: { $type: 'string', $gt: '' } } },
+);
+modelPayment.index(
+    { gatewayOrderId: 1 },
+    { unique: true, sparse: true, partialFilterExpression: { gatewayOrderId: { $type: 'string', $gt: '' } } },
+);
 
 module.exports = mongoose.model('payment', modelPayment, 'shoe.payments');

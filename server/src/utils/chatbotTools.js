@@ -28,9 +28,11 @@ async function getMyVouchers(userId) {
         };
     }
 
+    // Chỉ trả thông tin công khai an toàn — không dump toàn bộ mã voucher nội bộ
     const vouchers = await ModelVoucher.find({
         isActive: true,
     })
+        .select('title category discountType discountValue maxDiscount minOrderValue expiredAt')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean();
@@ -38,7 +40,17 @@ async function getMyVouchers(userId) {
     return {
         success: true,
         type: 'vouchers',
-        data: vouchers,
+        data: vouchers.map((v) => ({
+            title: v.title,
+            category: v.category,
+            discountType: v.discountType,
+            discountValue: v.discountValue,
+            maxDiscount: v.maxDiscount,
+            minOrderValue: v.minOrderValue,
+            expiredAt: v.expiredAt,
+            // Không trả code đầy đủ cho chatbot
+            hint: 'Vào trang Voucher trên website để áp mã cụ thể.',
+        })),
     };
 }
 

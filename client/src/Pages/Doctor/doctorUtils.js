@@ -1,10 +1,13 @@
-const SERVER_URL = process.env.REACT_APP_SERVER || 'http://localhost:5001';
-
 export const getCertificateUrl = (path) => {
     if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    if (path.startsWith('/uploads/')) return `${SERVER_URL}${path}`;
-    return `${SERVER_URL}/uploads/${path}`;
+    // File chứng chỉ chỉ xem qua API có JWT (cookie)
+    const rel = path.startsWith('http://') || path.startsWith('https://')
+        ? path
+        : path.startsWith('/uploads/')
+          ? path
+          : `/uploads/${path}`;
+    const SERVER_URL = process.env.REACT_APP_SERVER || 'http://localhost:5001';
+    return `${SERVER_URL}/api/doctor/certificate-file?path=${encodeURIComponent(rel)}`;
 };
 
 export const STATUS_LABELS = {

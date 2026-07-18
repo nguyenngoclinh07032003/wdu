@@ -14,11 +14,14 @@ const EMPTY_PROFILE = {
     specialty: '',
     hospital: '',
     licenseNumber: '',
+    bio: '',
+    experienceYears: 0,
     certificateUrl: '',
     certificateFileName: '',
     status: 'pending',
     rejectionReason: '',
     updatedAt: null,
+    verifiedFieldsLocked: false,
 };
 
 function DoctorProfile() {
@@ -92,6 +95,8 @@ function DoctorProfile() {
                 specialty: profile.specialty,
                 hospital: profile.hospital,
                 licenseNumber: profile.licenseNumber,
+                bio: profile.bio,
+                experienceYears: profile.experienceYears,
             });
             const message = res?.data?.message || 'Lưu hồ sơ thành công';
             showSuccess(message);
@@ -260,16 +265,32 @@ function DoctorProfile() {
 
                     <div className={cx('profileViewGrid')}>
                         <div className={cx('profileViewItem')}>
-                            <label>Chuyên khoa</label>
+                            <label>Họ tên (đã xác minh)</label>
+                            <p>{profile.fullname || '—'}</p>
+                        </div>
+                        <div className={cx('profileViewItem')}>
+                            <label>Email</label>
+                            <p>{profile.email || '—'}</p>
+                        </div>
+                        <div className={cx('profileViewItem')}>
+                            <label>Chuyên khoa chính</label>
                             <p>{profile.specialty || '—'}</p>
                         </div>
                         <div className={cx('profileViewItem')}>
                             <label>Số giấy phép hành nghề</label>
                             <p>{profile.licenseNumber || '—'}</p>
                         </div>
+                        <div className={cx('profileViewItem')}>
+                            <label>Kinh nghiệm (năm)</label>
+                            <p>{profile.experienceYears ?? '—'}</p>
+                        </div>
                         <div className={cx('profileViewItem', 'fullWidth')}>
                             <label>Cơ sở công tác</label>
                             <p>{profile.hospital || '—'}</p>
+                        </div>
+                        <div className={cx('profileViewItem', 'fullWidth')}>
+                            <label>Giới thiệu</label>
+                            <p style={{ whiteSpace: 'pre-wrap' }}>{profile.bio || '—'}</p>
                         </div>
                         <div className={cx('profileViewItem', 'fullWidth')}>
                             <label>Chứng chỉ hành nghề</label>
@@ -327,7 +348,17 @@ function DoctorProfile() {
 
             <div className={cx('formGrid')}>
                 <div className={cx('formGroup')}>
-                    <label>Chuyên khoa</label>
+                    <label>Họ tên (không tự sửa)</label>
+                    <input value={profile.fullname || ''} disabled />
+                </div>
+
+                <div className={cx('formGroup')}>
+                    <label>Email</label>
+                    <input value={profile.email || ''} disabled />
+                </div>
+
+                <div className={cx('formGroup')}>
+                    <label>Chuyên khoa chính {profile.status === 'approved' ? '(sửa sẽ gửi duyệt lại)' : ''}</label>
                     <input
                         value={profile.specialty}
                         onChange={(e) => setProfile({ ...profile, specialty: e.target.value })}
@@ -336,11 +367,23 @@ function DoctorProfile() {
                 </div>
 
                 <div className={cx('formGroup')}>
-                    <label>Số giấy phép hành nghề</label>
+                    <label>Số giấy phép hành nghề {profile.status === 'approved' ? '(sửa sẽ gửi duyệt lại)' : ''}</label>
                     <input
                         value={profile.licenseNumber}
                         onChange={(e) => setProfile({ ...profile, licenseNumber: e.target.value })}
                         placeholder="VD: 12345/BYT"
+                    />
+                </div>
+
+                <div className={cx('formGroup')}>
+                    <label>Kinh nghiệm (năm)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        value={profile.experienceYears || 0}
+                        onChange={(e) =>
+                            setProfile({ ...profile, experienceYears: Number(e.target.value) || 0 })
+                        }
                     />
                 </div>
 
@@ -350,6 +393,16 @@ function DoctorProfile() {
                         value={profile.hospital}
                         onChange={(e) => setProfile({ ...profile, hospital: e.target.value })}
                         placeholder="VD: Bệnh viện Đa khoa..."
+                    />
+                </div>
+
+                <div className={cx('formGroup', 'fullWidth')}>
+                    <label>Giới thiệu bản thân</label>
+                    <textarea
+                        rows={4}
+                        value={profile.bio || ''}
+                        onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                        placeholder="Mô tả ngắn về chuyên môn, kinh nghiệm tư vấn..."
                     />
                 </div>
 

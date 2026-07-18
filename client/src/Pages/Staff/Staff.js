@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import classNames from 'classnames/bind';
-import styles from '../../Styles/Admin.module.scss';
+import styles from '../../Styles/StaffPortal.module.scss';
 import 'react-toastify/dist/ReactToastify.css';
+import { io } from 'socket.io-client';
 
 import SlideBar from './SlideBar/SlideBar';
+import StaffTopBar from './Components/StaffTopBar';
 import HomePage from './HomePage/HomePage';
-import { requestStaff } from '../../Config/api';
+import request, { requestStaff } from '../../Config/api';
 import { fetchSupportRequestPendingCount } from '../../services/supportRequestService';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,11 +17,15 @@ const Staff = () => {
     const navigate = useNavigate();
     const [checkTypeSlideBar, setCheckTypeSlideBar] = useState(1);
     const [supportPendingCount, setSupportPendingCount] = useState(0);
+    const [inboxUnreadTotal, setInboxUnreadTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [allowed, setAllowed] = useState(false);
+    const [staffName, setStaffName] = useState('');
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [inboxInitialFilter, setInboxInitialFilter] = useState('pending');
 
     useEffect(() => {
-        document.title = 'Khu vực Staff';
+        document.title = 'Healthcare Staff Panel';
     }, []);
 
     useEffect(() => {
@@ -30,6 +36,13 @@ const Staff = () => {
                 await requestStaff();
                 if (!isMounted) return;
                 setAllowed(true);
+                try {
+                    const authRes = await request.get('/api/auth');
+                    const user = authRes?.data?.user || authRes?.data || {};
+                    setStaffName(user?.fullname || user?.email || '');
+                } catch (e) {
+                    // ignore
+                }
             } catch (error) {
                 if (!isMounted) return;
                 setAllowed(false);
@@ -40,26 +53,61 @@ const Staff = () => {
         };
 
         fetchStaff();
-
         return () => {
             isMounted = false;
         };
     }, [navigate]);
 
+    const fetchUnreadSummary = useCallback(async () => {
+        try {
+            const res = await request.get('/api/staff-inbox/inbox/unread-summary');
+            setInboxUnreadTotal(res?.data?.totalUnread || 0);
+        } catch (error) {
+            console.log(error);
+        }
+    }, []);
+
+    const loadSupportPendingCount = useCallback(async () => {
+        try {
+            const res = await fetchSupportRequestPendingCount();
+            setSupportPendingCount(res?.pendingCount || 0);
+        } catch (error) {
+            console.log(error);
+        }
+    }, []);
+
     useEffect(() => {
         if (!allowed) return;
-
-        const loadSupportPendingCount = async () => {
-            try {
-                const res = await fetchSupportRequestPendingCount();
-                setSupportPendingCount(res?.pendingCount || 0);
-            } catch (error) {
-                console.log(error);
-            }
-        };
-
+        fetchUnreadSummary();
         loadSupportPendingCount();
-    }, [allowed, checkTypeSlideBar]);
+
+        const socket = io(process.env.REACT_APP_SERVER, {
+            withCredentials: true,
+            transports: ['websocket', 'polling'],
+        });
+        socket.emit('join', 'staff-inbox');
+        const onUpdate = () => {
+            fetchUnreadSummary();
+            setRefreshKey((k) => k + 1);
+        };
+        socket.on('staff-inbox:update', onUpdate);
+        const timer = setInterval(() => {
+            fetchUnreadSummary();
+            loadSupportPendingCount();
+        }, 12000);
+
+        return () => {
+            socket.off('staff-inbox:update', onUpdate);
+            socket.emit('leave', 'staff-inbox');
+            socket.disconnect();
+            clearInterval(timer);
+        };
+    }, [allowed, fetchUnreadSummary, loadSupportPendingCount]);
+
+    const handleNavigate = (tab, filter) => {
+        if (filter) setInboxInitialFilter(filter);
+        setCheckTypeSlideBar(tab);
+    };
 
     if (loading) {
         return <div style={{ padding: '20px' }}>Đang tải trang Staff...</div>;
@@ -70,20 +118,36 @@ const Staff = () => {
     }
 
     return (
-        <div className={cx('wrapper')}>
-            <div className={cx('slidebar')}>
-                <SlideBar
-                    setCheckTypeSlideBar={setCheckTypeSlideBar}
-                    checkTypeSlideBar={checkTypeSlideBar}
-                    supportPendingCount={supportPendingCount}
-                />
-            </div>
+        <div className={cx('portal')}>
+            <SlideBar
+                setCheckTypeSlideBar={setCheckTypeSlideBar}
+                checkTypeSlideBar={checkTypeSlideBar}
+                supportPendingCount={supportPendingCount}
+                inboxUnreadTotal={inboxUnreadTotal}
+            />
 
-            <div className={cx('home-page')}>
-                <HomePage
-                    checkTypeSlideBar={checkTypeSlideBar}
-                    onSupportPendingCountChange={setSupportPendingCount}
-                />
+            <div className={cx('mainColumn')}>
+                {checkTypeSlideBar !== 1 ? (
+                    <StaffTopBar
+                        staffName={staffName}
+                        inboxUnreadTotal={inboxUnreadTotal}
+                        supportPendingCount={supportPendingCount}
+                        onOpenInbox={() => handleNavigate(5, 'pending')}
+                    />
+                ) : null}
+
+                <div className={cx('content')}>
+                    <HomePage
+                        checkTypeSlideBar={checkTypeSlideBar}
+                        setCheckTypeSlideBar={setCheckTypeSlideBar}
+                        onSupportPendingCountChange={setSupportPendingCount}
+                        onInboxUnreadChange={setInboxUnreadTotal}
+                        onNavigate={handleNavigate}
+                        refreshKey={refreshKey}
+                        inboxInitialFilter={inboxInitialFilter}
+                        notifCount={(inboxUnreadTotal || 0) + (supportPendingCount || 0)}
+                    />
+                </div>
             </div>
         </div>
     );

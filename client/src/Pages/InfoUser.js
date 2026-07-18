@@ -3,7 +3,7 @@ import styles from '../Styles/InfoUser.module.scss';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import request from '../Config/api';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,6 +20,7 @@ import ReminderPage from '../Pages/ProfileUser/ReminderPage';
 import CustomerNotifications from '../Pages/ProfileUser/CustomerNotifications';
 import MySupportRequests from '../Pages/ProfileUser/MySupportRequests';
 import { fetchCustomerNotifications } from '../services/customerSupportService';
+import { io } from 'socket.io-client';
 
 const cx = classNames.bind(styles);
 const PROFILE_TABS = ['profile', 'orders', 'address', 'reminder', 'review', 'notifications', 'support'];
@@ -116,6 +117,46 @@ function InfoUser() {
     useEffect(() => {
         fetchPayments();
     }, [fetchPayments]);
+
+    useEffect(() => {
+        const userId = dataUser?._id || dataUser?.id;
+        if (!userId) return undefined;
+
+        const socket = io(process.env.REACT_APP_SERVER, {
+            withCredentials: true,
+            transports: ['websocket', 'polling'],
+        });
+        socket.emit('join', `user:${userId}`);
+
+        const onDeliveryUpdate = (payload) => {
+            if (!payload?.orderId) {
+                fetchPayments();
+                return;
+            }
+            setDataPayments((prev) =>
+                prev.map((order) => {
+                    if (String(order._id) !== String(payload.orderId)) return order;
+                    return {
+                        ...order,
+                        status: payload.status || order.status,
+                        deliveryStatus: payload.deliveryStatus || order.deliveryStatus,
+                        deliveryAttempt: payload.deliveryAttempt ?? order.deliveryAttempt,
+                        updatedAt: payload.updatedAt || order.updatedAt,
+                        ...(payload.publicView || {}),
+                    };
+                }),
+            );
+            toast.info(`Đơn hàng: ${payload.statusDisplay || 'đã cập nhật trạng thái'}`);
+        };
+
+        socket.on('order:delivery-updated', onDeliveryUpdate);
+
+        return () => {
+            socket.off('order:delivery-updated', onDeliveryUpdate);
+            socket.emit('leave', `user:${userId}`);
+            socket.disconnect();
+        };
+    }, [dataUser, fetchPayments]);
 
     const loadUnreadNotifications = useCallback(async () => {
         try {

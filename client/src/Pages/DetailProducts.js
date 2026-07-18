@@ -13,6 +13,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 
 import shipIcon from '../assests/icons/ship.png';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 import qualityIcon from '../assests/icons/quality.png';
 
 import CardBody from '../Components/CardBody';
@@ -592,7 +593,7 @@ function DetailProducts() {
                                     {activeTab === 'description' ? (
                                         <div
                                             dangerouslySetInnerHTML={{
-                                                __html: item?.description || '',
+                                                __html: sanitizeHtml(item?.description || ''),
                                             }}
                                         />
                                     ) : (

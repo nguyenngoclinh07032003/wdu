@@ -11,6 +11,7 @@ import {
     faGear,
     faGift,
     faUserDoctor,
+    faHeadset,
 } from '@fortawesome/free-solid-svg-icons';
 import request from '../../../Config/api';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +20,7 @@ import logo from '../../../assests/logo/Logo.png';
 
 const cx = classNames.bind(styles);
 
-function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
+function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar, supportPendingCount = 0 }) {
     const navigate = useNavigate();
 
     const [adminInfo, setAdminInfo] = useState({
@@ -182,6 +183,19 @@ function SlideBar({ setCheckTypeSlideBar, checkTypeSlideBar }) {
                         <FontAwesomeIcon icon={faUserDoctor} />
                     </span>
                     <span>Duyệt Bác sĩ</span>
+                </li>
+
+                <li
+                    onClick={() => setCheckTypeSlideBar(9)}
+                    className={cx('menuItem', { active: checkTypeSlideBar === 9 })}
+                >
+                    <span className={cx('icon')}>
+                        <FontAwesomeIcon icon={faHeadset} />
+                    </span>
+                    <span style={{ flex: 1 }}>Yêu cầu hỗ trợ</span>
+                    {supportPendingCount > 0 ? (
+                        <span className={cx('menuBadge')}>{supportPendingCount}</span>
+                    ) : null}
                 </li>
             </ul>
             <div className={cx('footer')}>

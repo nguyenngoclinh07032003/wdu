@@ -4,8 +4,18 @@ import styles from '../../../Styles/DoctorPanel.module.scss';
 import request from '../../../Config/api';
 import { toast } from 'react-toastify';
 import { STATUS_LABELS } from '../doctorUtils';
+import { sanitizeHtml } from '../../../utils/sanitizeHtml';
 
 const cx = classNames.bind(styles);
+
+function stripHtml(html = '') {
+    return String(html)
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .trim();
+}
 
 function DoctorQA() {
     const [questions, setQuestions] = useState([]);
@@ -53,6 +63,20 @@ function DoctorQA() {
         }
     };
 
+    const insertToReply = (item) => {
+        const text = stripHtml(item.answer || '');
+        if (!text) {
+            toast.error('Chưa có nội dung để chèn');
+            return;
+        }
+        window.dispatchEvent(
+            new CustomEvent('doctor-ai-insert', {
+                detail: { text: `[Gợi ý AI — cần kiểm tra trước khi gửi]\n${text}` },
+            }),
+        );
+        toast.success('Đã sẵn sàng nội dung AI. Mở “Câu hỏi khách hàng” và khung trả lời để chèn.');
+    };
+
     if (loading) {
         return <div className={cx('doctorPage')}>Đang tải Q&A...</div>;
     }
@@ -61,10 +85,14 @@ function DoctorQA() {
 
     return (
         <div className={cx('doctorPage')}>
-            <h2 className={cx('pageTitle')}>Hỏi đáp chuyên môn</h2>
+            <h2 className={cx('pageTitle')}>Hỏi đáp AI</h2>
             <p className={cx('pageDesc')}>
-                Gửi câu hỏi chuyên môn y tế và nhận câu trả lời từ hệ thống AI hỗ trợ bác sĩ.
+                AI chỉ hỗ trợ gợi ý nội dung. Bác sĩ phải kiểm tra và chỉnh sửa trước khi gửi cho khách hàng.
             </p>
+
+            <div className={cx('aiDisclaimer')}>
+                Nội dung chỉ mang tính tham khảo. Không kết luận chắc chắn về bệnh. Không tự động gửi cho khách hàng.
+            </div>
 
             {!canAsk ? (
                 <div className={cx('statusCard', 'statusPending')}>
@@ -74,11 +102,11 @@ function DoctorQA() {
             ) : null}
 
             <div className={cx('formGroup', 'fullWidth')}>
-                <label>Câu hỏi của bạn</label>
+                <label>Câu hỏi chuyên môn / tóm tắt hội thoại</label>
                 <textarea
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    placeholder="Nhập câu hỏi chuyên môn..."
+                    placeholder="Nhập câu hỏi, triệu chứng cần gợi ý trả lời, hoặc yêu cầu tóm tắt..."
                     disabled={!canAsk || submitting}
                 />
             </div>
@@ -90,11 +118,11 @@ function DoctorQA() {
                     onClick={handleSubmit}
                     disabled={!canAsk || submitting}
                 >
-                    {submitting ? 'Đang gửi...' : 'Gửi câu hỏi'}
+                    {submitting ? 'Đang gửi...' : 'Nhận gợi ý AI'}
                 </button>
             </div>
 
-            <h3 style={{ marginTop: 32 }}>Lịch sử hỏi đáp</h3>
+            <h3 style={{ marginTop: 32 }}>Lịch sử gợi ý</h3>
 
             <div className={cx('qaList')}>
                 {questions.length ? (
@@ -104,13 +132,24 @@ function DoctorQA() {
                             <div
                                 className={cx('qaAnswer')}
                                 dangerouslySetInnerHTML={{
-                                    __html: item.answer || '<em>Chưa có câu trả lời</em>',
+                                    __html: sanitizeHtml(item.answer || '<em>Chưa có câu trả lời</em>'),
                                 }}
                             />
                             <div className={cx('qaMeta')}>
                                 {item.answerSource ? `Nguồn: ${item.answerSource}` : ''}
                                 {item.createdAt ? ` • ${new Date(item.createdAt).toLocaleString('vi-VN')}` : ''}
                             </div>
+                            {item.answer ? (
+                                <div className={cx('actions')} style={{ marginTop: 10 }}>
+                                    <button
+                                        type="button"
+                                        className={cx('secondaryBtn')}
+                                        onClick={() => insertToReply(item)}
+                                    >
+                                        Chèn vào khung trả lời
+                                    </button>
+                                </div>
+                            ) : null}
                         </div>
                     ))
                 ) : (

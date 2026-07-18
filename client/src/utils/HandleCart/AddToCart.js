@@ -9,9 +9,10 @@ const AddToCartProduct = async (props, quantity = 1, selectSize) => {
         return toast.error('Bạn Cần Đăng Nhập Trước !!!');
     }
     try {
-        const { img, name, price, type } = props;
+        const { img, name, price, type, _id } = props;
 
         const res = await request.post('/api/addtocart', {
+            productId: _id,
             nameProduct: name,
             imgProduct: img[0],
             priceProduct: price,

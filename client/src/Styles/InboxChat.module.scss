@@ -181,6 +181,7 @@
     padding: 12px;
     border-top: 1px solid #e5ecd7;
     background: #fff;
+    position: relative;
 
     input {
         flex: 1;
@@ -305,4 +306,66 @@
     padding: 10px 14px;
     background: #fff;
     cursor: pointer;
+}
+
+.doctorActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5ecd7;
+    background: #f7faf4;
+
+    button {
+        border: 1px solid #dbe8c5;
+        background: #fff;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        color: #2f4a33;
+
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    }
+}
+
+.messageRow.internal {
+    .internalBubble {
+        background: #f3e8ff;
+        border: 1px dashed #c4b5fd;
+    }
+}
+
+.aiTag {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6d28d9;
+}
+
+.internalHint {
+    position: absolute;
+    top: -18px;
+    left: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #6d28d9;
+}
+
+.escalateBox {
+    select,
+    input[type='datetime-local'] {
+        width: 100%;
+        border: 1px solid #dbe8c5;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+    }
 }

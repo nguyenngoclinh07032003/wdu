@@ -6,6 +6,7 @@ const modelCart = new Schema({
     user: { type: String, default: '' },
     products: [
         {
+            productId: { type: String, default: '' },
             nameProduct: { type: String, default: '' },
             quantity: { type: Number, default: 0 },
             price: { type: Number, default: 0 },
