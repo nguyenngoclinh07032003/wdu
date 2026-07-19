@@ -37,11 +37,19 @@ function Payments() {
 
     const navigate = useNavigate();
     const location = useLocation();
-    const { getCart } = useStore();
+    const { getCart, dataUser } = useStore();
 
     const cartInfo = dataCart?.[0] || {};
     const voucher = cartInfo?.voucher || null;
     const hasVoucher = !!voucher?.code;
+
+    const getProfileDefaults = useCallback(() => {
+        return {
+            name: String(dataUser?.fullname || dataUser?.name || dataUser?.username || '').trim(),
+            phone: String(dataUser?.phone || '').trim(),
+            email: String(dataUser?.email || '').trim(),
+        };
+    }, [dataUser]);
 
     const totalProduct = useMemo(() => {
         const total = dataCart.map((item) => item.sumprice);
@@ -89,13 +97,37 @@ function Payments() {
         window.scrollTo(0, 0);
     }, []);
 
-    const applyAddressToForm = useCallback((item) => {
-        if (!item) return;
+    // Điền họ tên / SĐT / email từ tài khoản đăng nhập khi form còn trống
+    useEffect(() => {
+        const profile = getProfileDefaults();
+        if (!profile.name && !profile.phone && !profile.email) return;
 
-        setName(item.fullName || '');
-        setPhone(item.phone || '');
-        setAddress(formatAddressText(item));
-    }, []);
+        if (profile.email) {
+            setEmail((prev) => prev || profile.email);
+        }
+        if (profile.name) {
+            setName((prev) => prev || profile.name);
+        }
+        if (profile.phone) {
+            setPhone((prev) => prev || profile.phone);
+        }
+    }, [getProfileDefaults]);
+
+    const applyAddressToForm = useCallback(
+        (item) => {
+            if (!item) return;
+
+            const profile = getProfileDefaults();
+
+            setName(item.fullName || profile.name || '');
+            setPhone(item.phone || profile.phone || '');
+            setAddress(formatAddressText(item));
+            if (profile.email) {
+                setEmail(profile.email);
+            }
+        },
+        [getProfileDefaults],
+    );
 
     const syncCartShippingInfo = useCallback(async (item) => {
         if (!item) return;
@@ -112,6 +144,12 @@ function Payments() {
     }, []);
 
     const loadCheckoutAddress = useCallback(async () => {
+        const profile = getProfileDefaults();
+
+        if (profile.email) {
+            setEmail(profile.email);
+        }
+
         try {
             const list = await getAddresses();
             const safeList = Array.isArray(list) ? list : [];
@@ -129,14 +167,17 @@ function Payments() {
             }
 
             setSelectedAddressId('');
-            setName('');
-            setPhone('');
+            setName(profile.name);
+            setPhone(profile.phone);
             setAddress('');
         } catch (error) {
             console.log('loadCheckoutAddress error:', error);
             setAddresses([]);
+            setName(profile.name);
+            setPhone(profile.phone);
+            setAddress('');
         }
-    }, [applyAddressToForm, syncCartShippingInfo]);
+    }, [applyAddressToForm, syncCartShippingInfo, getProfileDefaults]);
 
     useEffect(() => {
         if (location.pathname === '/payments') {
@@ -249,21 +290,6 @@ function Payments() {
                 shippingFee: finalShippingFee,
                 finalTotal,
             };
-
-            if (paymentMethod === 'MOMO') {
-                saveLastOrderInfo();
-
-                const res = await request.post('/api/payment', payload);
-                await getCart().catch((err) => console.log('getCart error:', err));
-
-                if (res?.data?.payUrl) {
-                    window.open(res.data.payUrl, '_self');
-                } else {
-                    toast.error('Không lấy được liên kết thanh toán Momo');
-                }
-
-                return;
-            }
 
             if (paymentMethod === 'VNPAY') {
                 saveLastOrderInfo();
@@ -431,24 +457,6 @@ function Payments() {
                         </div>
 
                         <div className={cx('paymentList')}>
-                            <label className={cx('paymentCard', { active: paymentMethod === 'MOMO' })}>
-                                <div className={cx('paymentLeft')}>
-                                    <input
-                                        type="radio"
-                                        name="paymentMethod"
-                                        value="MOMO"
-                                        checked={paymentMethod === 'MOMO'}
-                                        onChange={handlePaymentMethodChange}
-                                    />
-                                    <div>
-                                        <h4>MoMo Wallet</h4>
-                                        <p>Thanh toán qua Momo</p>
-                                    </div>
-                                </div>
-
-                                <FaMoneyCheckAlt className={cx('paymentIcon')} />
-                            </label>
-
                             <label className={cx('paymentCard', { active: paymentMethod === 'VNPAY' })}>
                                 <div className={cx('paymentLeft')}>
                                     <input

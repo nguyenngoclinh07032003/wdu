@@ -73,11 +73,6 @@ export const requestPaymentVNPAY = async (data) => {
     return res.data;
 };
 
-export const requestPaymentsMomo = async (data) => {
-    const res = await request.post('/api/payment', data);
-    return res.data;
-};
-
 export const requestGetBlogs = async (params = {}) => {
     const res = await request.get('/api/blogs', { params });
     return res.data;

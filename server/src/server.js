@@ -162,9 +162,6 @@ connectDB()
     .catch((err) => console.error('Startup backfill error:', err.message));
 startReminderMailJob();
 
-if (!process.env.MOMO_PARTNER_CODE || !process.env.MOMO_ACCESS_KEY || !process.env.MOMO_SECRET_KEY) {
-    console.warn('⚠️ MoMo sandbox keys missing – online MoMo checkout will fail until configured');
-}
 if (!process.env.VNPAY_TMN_CODE || !process.env.VNPAY_HASH_SECRET) {
     console.warn('⚠️ VNPay sandbox keys missing – online VNPay checkout will fail until configured');
 }

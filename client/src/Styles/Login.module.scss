@@ -452,6 +452,14 @@ $muted: #68756f;
         &::placeholder {
             color: #7d8983;
         }
+
+        // Ẩn nút hiện mật khẩu mặc định của Edge/IE (tránh bị 2 icon mắt)
+        &::-ms-reveal,
+        &::-ms-clear {
+            display: none;
+            width: 0;
+            height: 0;
+        }
     }
 
     &:focus-within {
