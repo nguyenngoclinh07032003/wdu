@@ -13,22 +13,12 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import addToCartProduct from '../utils/HandleCart/AddToCart';
 import { useStore } from '../hooks/useStore';
+import { getFirstUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
 const icons = [faShieldHeart, faFaceSmile, faSpa];
 const themes = ['green', 'blue', 'beige'];
-
-const SERVER_URL = process.env.REACT_APP_SERVER || 'http://localhost:5001';
-
-const getImageUrl = (img) => {
-    if (!img) return '';
-
-    if (img.startsWith('http://') || img.startsWith('https://')) return img;
-    if (img.startsWith('/uploads/')) return `${SERVER_URL}${img}`;
-
-    return `${SERVER_URL}/uploads/${img}`;
-};
 
 function Combo() {
     const [combos, setCombos] = useState([]);
@@ -112,7 +102,7 @@ function Combo() {
                         <div className={cx('track')}>
                             {marqueeCombos.map((item, index) => {
                                 const realIndex = index % combos.length;
-                                const image = getImageUrl(item.img?.[0]);
+                                const image = getFirstUploadUrl(item.img);
                                 const isBuying = buyingId === item._id;
 
                                 return (

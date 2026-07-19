@@ -53,7 +53,7 @@ function ManageShipper() {
     const [showDetail, setShowDetail] = useState(false);
     const [assigning, setAssigning] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [selectedOrderId, setSelectedOrderId] = useState('');
+    const [selectedOrderIds, setSelectedOrderIds] = useState([]);
 
     const fetchData = async () => {
         try {
@@ -154,7 +154,7 @@ function ManageShipper() {
 
     const handleOpenAssignModal = (shipper) => {
         setSelectedShipper(shipper);
-        setSelectedOrderId('');
+        setSelectedOrderIds([]);
         setShowAssignModal(true);
     };
 
@@ -165,24 +165,30 @@ function ManageShipper() {
                 return;
             }
 
-            if (!selectedOrderId) {
+            if (selectedOrderIds.length === 0) {
                 toast.warning('Vui lòng chọn đơn hàng');
                 return;
             }
 
             setAssigning(true);
 
-            const res = await request.put(`/api/assign-order-shipper/${selectedOrderId}`, {
+            const res = await request.put('/api/assign-order-shipper', {
                 shipperId: selectedShipper._id,
+                orderIds: selectedOrderIds,
             });
 
-            toast.success(res?.data?.message || 'Gán đơn thành công');
+            if (res?.data?.failedCount > 0) {
+                toast.warning(res?.data?.message || 'Một số đơn chưa gán được');
+            } else {
+                toast.success(res?.data?.message || 'Gán đơn thành công');
+            }
 
             setShowAssignModal(false);
-            setSelectedOrderId('');
+            setSelectedOrderIds([]);
             setSelectedShipper(null);
 
             fetchData();
+            window.dispatchEvent(new Event('shipping-assignment-updated'));
         } catch (error) {
             console.error('Gán đơn thất bại:', error);
             toast.error(error?.response?.data?.message || 'Gán đơn thất bại');
@@ -197,6 +203,25 @@ function ManageShipper() {
             return !item?.shipperId && status === 'confirmed';
         });
     }, [orders]);
+
+    const handleToggleOrderSelection = (orderId) => {
+        setSelectedOrderIds((prev) => {
+            if (prev.includes(orderId)) {
+                return prev.filter((item) => item !== orderId);
+            }
+
+            return [...prev, orderId];
+        });
+    };
+
+    const handleToggleAllOrders = () => {
+        if (selectedOrderIds.length === availableOrders.length) {
+            setSelectedOrderIds([]);
+            return;
+        }
+
+        setSelectedOrderIds(availableOrders.map((order) => order._id));
+    };
 
     return (
         <div className={cx('wrapper')}>
@@ -266,15 +291,16 @@ function ManageShipper() {
                                     type="button"
                                     className={cx('toolBtn')}
                                     onClick={() => {
-                                        const confirmedOrders = orders.filter((item) => {
-                                            const status = String(item?.status || '').toLowerCase();
-                                            return !item?.shipperId && status === 'confirmed';
-                                        });
-
-                                        toast.info(`Có ${confirmedOrders.length} đơn chờ gán shipper`);
+                                        toast.info(`Có ${availableOrders.length} đơn chờ gán shipper`);
                                     }}
+                                    title="Đơn chưa gán shipper"
                                 >
                                     <FontAwesomeIcon icon={faFilter} />
+                                    {availableOrders.length > 0 ? (
+                                        <span className={cx('toolBadge')}>
+                                            {availableOrders.length > 99 ? '99+' : availableOrders.length}
+                                        </span>
+                                    ) : null}
                                 </button>
 
                                 <button
@@ -471,25 +497,48 @@ function ManageShipper() {
                             <div className={cx('assignBox')}>
                                 <label>Chọn đơn hàng</label>
 
-                                <select value={selectedOrderId} onChange={(e) => setSelectedOrderId(e.target.value)}>
-                                    <option value="">-- Chọn đơn cần giao --</option>
+                                <div className={cx('assignSummary')}>
+                                    <span>
+                                        Đã chọn {selectedOrderIds.length}/{availableOrders.length} đơn
+                                    </span>
 
+                                    <button
+                                        className={cx('selectAllBtn')}
+                                        type="button"
+                                        onClick={handleToggleAllOrders}
+                                        disabled={availableOrders.length === 0}
+                                    >
+                                        {selectedOrderIds.length === availableOrders.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                    </button>
+                                </div>
+
+                                <div className={cx('orderCheckList')}>
                                     {availableOrders.map((order) => (
-                                        <option key={order._id} value={order._id}>
-                                            #{getOrderCode(order)} - {getOrderProductName(order)} -{' '}
-                                            {Number(order.sumprice || 0).toLocaleString('vi-VN')}đ
-                                        </option>
+                                        <label key={order._id} className={cx('orderCheckItem')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedOrderIds.includes(order._id)}
+                                                onChange={() => handleToggleOrderSelection(order._id)}
+                                            />
+
+                                            <div>
+                                                <strong>#{getOrderCode(order)}</strong>
+                                                <span>{getOrderProductName(order)}</span>
+                                            </div>
+
+                                            <em>{Number(order.sumprice || 0).toLocaleString('vi-VN')}đ</em>
+                                        </label>
                                     ))}
-                                </select>
+                                </div>
 
                                 {availableOrders.length === 0 && <p>Hiện không có đơn hàng nào chưa gán shipper.</p>}
 
                                 <button
                                     type="button"
                                     onClick={handleConfirmAssignOrder}
-                                    disabled={assigning || !selectedOrderId}
+                                    disabled={assigning || selectedOrderIds.length === 0}
                                 >
-                                    {assigning ? 'Đang gán...' : 'Xác nhận gán đơn'}
+                                    {assigning ? 'Đang gán...' : `Xác nhận gán ${selectedOrderIds.length} đơn`}
                                 </button>
                             </div>
                         </div>

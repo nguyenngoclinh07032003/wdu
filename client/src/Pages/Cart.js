@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useStore } from '../hooks/useStore';
+import { getUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -190,7 +191,7 @@ function Cart() {
                                             <div className={cx('productInfo')}>
                                                 <div className={cx('imgProduct')}>
                                                     <img
-                                                        src={`${process.env.REACT_APP_IMG}/${item?.img}`}
+                                                        src={getUploadUrl(item?.img)}
                                                         alt={item?.nameProduct || 'product'}
                                                     />
                                                 </div>

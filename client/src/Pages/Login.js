@@ -25,6 +25,8 @@ import {
 } from 'react-icons/fa';
 
 const cx = classNames.bind(styles);
+const GOOGLE_LOGIN_CLIENT_ID =
+    process.env.REACT_APP_GOOGLE_CLIENT_ID || '173775792737-6ecgj0oaeo9mnspjct35hijrjr162fvm.apps.googleusercontent.com';
 
 function getPostLoginPath(user) {
     if (user?.isAdmin) return '/admin';
@@ -43,7 +45,7 @@ function LoginUser() {
     const [facebookLoading, setFacebookLoading] = useState(false);
 
     const navigate = useNavigate();
-    const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    const googleClientId = GOOGLE_LOGIN_CLIENT_ID.trim();
     const facebookAppId = process.env.REACT_APP_FACEBOOK_APP_ID;
 
     const handleLoginUser = async () => {
@@ -152,7 +154,7 @@ function LoginUser() {
         }
 
         try {
-            const data = await requestLoginGoogle(credential);
+            const data = await requestLoginGoogle(credential, googleClientId);
             toast.success('Đăng nhập Google thành công!');
             const redirectPath = getPostLoginPath(data?.user);
             setTimeout(() => {

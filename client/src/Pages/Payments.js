@@ -11,6 +11,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../hooks/useStore';
 import { getAddresses, getCheckoutAddressId, pickCheckoutAddress, formatAddressText } from '../services/addressService';
 import { FaTruck, FaMoneyCheckAlt, FaHandHoldingUsd, FaUniversity } from 'react-icons/fa';
+import { getUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -493,7 +494,7 @@ function Payments() {
                             {dataProducts?.map((item, index) => (
                                 <div key={item.id || item._id || index} className={cx('productItem')}>
                                     <div className={cx('productThumb')}>
-                                        <img src={`${process.env.REACT_APP_IMG}/${item.img}`} alt={item.nameProduct} />
+                                        <img src={getUploadUrl(item.img)} alt={item.nameProduct} />
                                     </div>
 
                                     <div className={cx('productInfo')}>

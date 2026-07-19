@@ -39,7 +39,8 @@ function ManageDoctorCertificates() {
         try {
             const res = await request.put(`/api/doctor/admin/certificates/${id}/approve`);
             toast.success(res?.data?.message || 'Đã duyệt');
-            fetchData();
+            await fetchData();
+            window.dispatchEvent(new Event('doctor-certificate-updated'));
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Duyệt thất bại');
         }
@@ -61,7 +62,8 @@ function ManageDoctorCertificates() {
             toast.success(res?.data?.message || 'Đã từ chối chứng chỉ');
             setShowRejectModal(false);
             setSelectedItem(null);
-            fetchData();
+            await fetchData();
+            window.dispatchEvent(new Event('doctor-certificate-updated'));
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Từ chối thất bại');
         } finally {

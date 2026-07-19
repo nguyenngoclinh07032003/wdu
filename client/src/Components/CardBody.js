@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useStore } from '../hooks/useStore';
+import { getFirstUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -51,9 +52,7 @@ function CardBody({ item }) {
     const hasDiscount = Number(discount) > 0 && item?.oldPrice;
 
     const imgSrc = useMemo(() => {
-        const file = item?.img?.[0];
-        if (!file) return '';
-        return `${process.env.REACT_APP_IMG}/${file}`;
+        return getFirstUploadUrl(item?.img);
     }, [item?.img]);
 
     return (

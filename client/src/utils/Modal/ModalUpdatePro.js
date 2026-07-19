@@ -7,6 +7,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styles from '../../Styles/ModalUpdatePro.module.scss';
 import { formatPriceWithCommas, parsePriceInput } from '../formatPriceInput';
+import { getUploadUrl } from '../imageUrl';
 
 function ModalUpdatePro({ show, setShow, data }) {
     const [nameProduct, setNameProduct] = useState('');
@@ -35,8 +36,8 @@ function ModalUpdatePro({ show, setShow, data }) {
         setImages([]);
         setVideos([]);
 
-        setPreviewImages(data.img?.map((item) => `${process.env.REACT_APP_IMG}/${item}`) || []);
-        setPreviewVideos(data.videos?.map((item) => `${process.env.REACT_APP_IMG}/${item}`) || []);
+        setPreviewImages(data.img?.map((item) => getUploadUrl(item)) || []);
+        setPreviewVideos(data.videos?.map((item) => getUploadUrl(item)) || []);
     }, [data]);
 
     const handleUpdatePro = async () => {

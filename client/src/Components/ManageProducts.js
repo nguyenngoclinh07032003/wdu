@@ -8,6 +8,7 @@ import ModalUpdatePro from '../utils/Modal/ModalUpdatePro';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPenToSquare, faTrashCan, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import request from '../Config/api';
+import { getFirstUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -137,7 +138,7 @@ function ManageProducts({ setCheckOpenAddProduct }) {
                                         <td>
                                             <div className={cx('imageBox')}>
                                                 <img
-                                                    src={`${process.env.REACT_APP_IMG}/${item?.img?.[0]}`}
+                                                    src={getFirstUploadUrl(item?.img)}
                                                     alt={item?.name || 'product'}
                                                 />
                                             </div>

@@ -13,4 +13,5 @@ server/src/uploads
 *.log
 tmp-smoke-tokens.json
 server/tmp-smoke-tokens.json
+client/e2e/screenshots/
 .cursor/

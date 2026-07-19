@@ -115,6 +115,12 @@
     flex-shrink: 0;
 }
 
+.menuItem span.menuBadge {
+    min-width: 22px;
+    overflow: visible;
+    text-overflow: clip;
+}
+
 .icon {
     width: 18px;
     display: flex;

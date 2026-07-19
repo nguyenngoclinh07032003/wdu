@@ -3,23 +3,10 @@ import styles from '../Styles/FeatureGrid.module.scss';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import request from '../Config/api';
+import fallbackBlogImage from '../assests/banner/banner5.png';
+import { getUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
-
-const SERVER_URL = process.env.REACT_APP_SERVER || 'http://localhost:5001';
-const IMAGE_URL = process.env.REACT_APP_IMG || 'http://localhost:5001/uploads';
-
-const getImageUrl = (path) => {
-    if (!path) return '';
-
-    const value = String(path).trim();
-
-    if (value.startsWith('http://') || value.startsWith('https://')) return value;
-    if (value.startsWith('/uploads/')) return `${SERVER_URL}${value}`;
-    if (value.startsWith('uploads/')) return `${SERVER_URL}/${value}`;
-
-    return `${IMAGE_URL}/${value}`;
-};
 
 function FeatureGrid() {
     const [posts, setPosts] = useState([]);
@@ -46,9 +33,16 @@ function FeatureGrid() {
 
                 <div className={cx('grid')}>
                     {posts.map((item) => (
-                        <Link key={item._id} to={`/blogs/${item.slug}`} className={cx('card')}>
+                        <Link key={item._id} to={`/blog/${item.slug}`} className={cx('card')}>
                             <div className={cx('image')}>
-                                <img src={getImageUrl(item.thumbnail)} alt={item.title} />
+                                <img
+                                    src={getUploadUrl(item.thumbnail) || fallbackBlogImage}
+                                    alt={item.title}
+                                    onError={(event) => {
+                                        event.currentTarget.onerror = null;
+                                        event.currentTarget.src = fallbackBlogImage;
+                                    }}
+                                />
                             </div>
 
                             <div className={cx('content')}>

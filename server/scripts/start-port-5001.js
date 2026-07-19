@@ -1,9 +1,8 @@
 const { execSync, spawn } = require('child_process');
 const path = require('path');
 
-const PORT = 3000;
-const EXTRA_PORTS_TO_CLOSE = [3001];
-const clientDir = path.resolve(__dirname, '..');
+const PORT = Number(process.env.PORT || 5001);
+const serverDir = path.resolve(__dirname, '..');
 
 function killPort(port) {
     try {
@@ -38,17 +37,14 @@ function killPort(port) {
     }
 }
 
-[PORT, ...EXTRA_PORTS_TO_CLOSE].forEach(killPort);
+killPort(PORT);
 
-const env = {
-    ...process.env,
-    PORT: String(PORT),
-    BROWSER: 'http://localhost:3000',
-};
-
-const child = spawn('react-scripts', ['start'], {
-    cwd: clientDir,
-    env,
+const child = spawn('node', ['src/server.js'], {
+    cwd: serverDir,
+    env: {
+        ...process.env,
+        PORT: String(PORT),
+    },
     shell: true,
     stdio: 'inherit',
 });

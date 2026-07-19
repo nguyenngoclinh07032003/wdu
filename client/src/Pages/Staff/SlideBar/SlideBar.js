@@ -28,6 +28,8 @@ function SlideBar({
         fullname: '',
         email: '',
     });
+    const [unassignedShippingCount, setUnassignedShippingCount] = useState(0);
+    const [orderAttentionCount, setOrderAttentionCount] = useState(0);
 
     useEffect(() => {
         const fetchStaffInfo = async () => {
@@ -43,6 +45,40 @@ function SlideBar({
             }
         };
         fetchStaffInfo();
+    }, []);
+
+    useEffect(() => {
+        const fetchUnassignedShippingCount = async () => {
+            try {
+                const res = await request.get('/api/getallorder');
+                const orders = Array.isArray(res.data) ? res.data : [];
+                const count = orders.filter((item) => {
+                    const status = String(item?.status || '').toLowerCase();
+                    return !item?.shipperId && status === 'confirmed';
+                }).length;
+                const attentionCount = orders.filter((item) =>
+                    ['pending', 'confirmed', 'shipping'].includes(String(item?.status || '').toLowerCase()),
+                ).length;
+
+                setUnassignedShippingCount(count);
+                setOrderAttentionCount(attentionCount);
+            } catch (error) {
+                console.log('Lỗi lấy số đơn chưa gán shipper:', error);
+                setUnassignedShippingCount(0);
+                setOrderAttentionCount(0);
+            }
+        };
+
+        fetchUnassignedShippingCount();
+        const intervalId = setInterval(fetchUnassignedShippingCount, 30000);
+        window.addEventListener('shipping-assignment-updated', fetchUnassignedShippingCount);
+        window.addEventListener('order-status-updated', fetchUnassignedShippingCount);
+
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('shipping-assignment-updated', fetchUnassignedShippingCount);
+            window.removeEventListener('order-status-updated', fetchUnassignedShippingCount);
+        };
     }, []);
 
     const handleLogout = async () => {
@@ -94,7 +130,12 @@ function SlideBar({
                     <span className={cx('menuIcon')}>
                         <FontAwesomeIcon icon={faCartPlus} />
                     </span>
-                    <span>Đơn hàng</span>
+                    <span style={{ flex: 1 }}>Đơn hàng</span>
+                    {orderAttentionCount > 0 ? (
+                        <span className={cx('menuBadge')} title={`${orderAttentionCount} đơn cần theo dõi`}>
+                            !
+                        </span>
+                    ) : null}
                 </li>
                 <li
                     onClick={() => setCheckTypeSlideBar(3)}
@@ -112,7 +153,12 @@ function SlideBar({
                     <span className={cx('menuIcon')}>
                         <FontAwesomeIcon icon={faTruck} />
                     </span>
-                    <span>Quản lý Shipping</span>
+                    <span style={{ flex: 1 }}>Quản lý Shipping</span>
+                    {unassignedShippingCount > 0 ? (
+                        <span className={cx('menuBadge')} title={`${unassignedShippingCount} đơn chưa gán shipper`}>
+                            !
+                        </span>
+                    ) : null}
                 </li>
                 <li
                     onClick={() => setCheckTypeSlideBar(5)}

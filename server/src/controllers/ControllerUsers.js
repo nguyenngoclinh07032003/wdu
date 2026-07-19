@@ -12,6 +12,17 @@ const { DELIVERY_STATUS, getStatusDisplay, syncLegacyStatus } = require('../util
 require('dotenv').config();
 
 const isProduction = process.env.NODE_ENV === 'production';
+const proxyEnvKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy'];
+
+function clearBrokenLocalProxy() {
+    proxyEnvKeys.forEach((key) => {
+        const value = process.env[key] || '';
+
+        if (value.includes('127.0.0.1:9') || value.includes('localhost:9')) {
+            delete process.env[key];
+        }
+    });
+}
 
 const FORGOT_COOLDOWN_MS = 60 * 1000;
 const FORGOT_IP_WINDOW_MS = 15 * 60 * 1000;
@@ -40,6 +51,146 @@ function hitForgotIpLimit(ip) {
     entry.count += 1;
     forgotIpBucket.set(key, entry);
     return entry.count > FORGOT_IP_MAX;
+}
+
+async function assignOrdersToShipperBatch(req, res, shipperId, rawOrderIds) {
+    const orderIds = [...new Set(rawOrderIds.map((id) => String(id || '').trim()).filter(Boolean))];
+
+    if (!shipperId || orderIds.length === 0) {
+        return res.status(400).json({
+            message: 'Thiếu orderId hoặc shipperId !!!',
+        });
+    }
+
+    const shipper = await ModelUser.findById(shipperId);
+
+    if (!shipper) {
+        return res.status(404).json({
+            message: 'Shipper không tồn tại !!!',
+        });
+    }
+
+    if (shipper.role !== 'shipper') {
+        return res.status(400).json({
+            message: 'Người dùng này không phải shipper !!!',
+        });
+    }
+
+    if (shipper.isActive === false) {
+        return res.status(400).json({
+            message: 'Shipper đang bị khóa, không thể gán đơn !!!',
+        });
+    }
+
+    const assignedOrders = [];
+    const failedOrders = [];
+    const actor = {
+        userId: req.user?.id || null,
+        role: req.user?.isAdmin ? 'admin' : req.user?.role || 'admin',
+    };
+
+    const addFailedOrder = (targetOrderId, status, message, order = null) => {
+        failedOrders.push({
+            orderId: targetOrderId,
+            orderCode: order?.gatewayOrderId || targetOrderId,
+            status,
+            message,
+        });
+    };
+
+    for (const targetOrderId of orderIds) {
+        try {
+            const order = await ModelPayment.findById(targetOrderId);
+
+            if (!order) {
+                addFailedOrder(targetOrderId, 404, 'Đơn hàng không tồn tại !!!');
+                continue;
+            }
+
+            if (!['pending', 'confirmed'].includes(order.status)) {
+                addFailedOrder(targetOrderId, 400, 'Chỉ gán được đơn đang chờ hoặc đã xác nhận !!!', order);
+                continue;
+            }
+
+            const previousStatus = order.deliveryStatus || '';
+            const claimed = await ModelPayment.findOneAndUpdate(
+                {
+                    _id: targetOrderId,
+                    status: { $in: ['pending', 'confirmed'] },
+                    $or: [{ shipperId: null }, { shipperId: { $exists: false } }],
+                },
+                {
+                    $set: {
+                        shipperId: shipper._id,
+                        shipperName: shipper.fullname,
+                        assignedAt: new Date(),
+                        status: 'confirmed',
+                        deliveryStatus: DELIVERY_STATUS.ASSIGNED,
+                        deliveryAttempt: 0,
+                        updatedAt: new Date(),
+                    },
+                },
+                { new: true },
+            );
+
+            if (!claimed) {
+                const existing = await ModelPayment.findById(targetOrderId);
+                if (!existing) {
+                    addFailedOrder(targetOrderId, 404, 'Đơn hàng không tồn tại !!!');
+                    continue;
+                }
+
+                if (existing.shipperId) {
+                    addFailedOrder(
+                        targetOrderId,
+                        400,
+                        existing.shipperName
+                            ? `Đơn đã được gán cho ${existing.shipperName}.`
+                            : 'Đơn đã được gán cho shipper khác.',
+                        existing,
+                    );
+                    continue;
+                }
+
+                addFailedOrder(targetOrderId, 400, 'Không thể gán đơn ở trạng thái hiện tại', existing);
+                continue;
+            }
+
+            syncLegacyStatus(claimed);
+
+            await appendHistory({
+                order: claimed,
+                previousStatus: previousStatus || '',
+                newStatus: DELIVERY_STATUS.ASSIGNED,
+                attemptNumber: 0,
+                note: `Gán cho shipper ${shipper.fullname}`,
+                actor,
+            });
+
+            emitDeliveryUpdate(req, claimed);
+            assignedOrders.push(claimed);
+        } catch (error) {
+            console.error('AssignOrderToShipper item error:', targetOrderId, error);
+            addFailedOrder(targetOrderId, 400, 'Không thể gán đơn này');
+        }
+    }
+
+    const assignedCount = assignedOrders.length;
+    const failedCount = failedOrders.length;
+    const message =
+        assignedCount === 0
+            ? `${failedCount} đơn chưa gán được.`
+            : failedCount > 0
+              ? `Đã gán ${assignedCount} đơn cho ${shipper.fullname}. ${failedCount} đơn chưa gán được.`
+              : `Đã gán ${assignedCount} đơn cho ${shipper.fullname} !!!`;
+
+    return res.status(assignedCount > 0 ? 200 : 400).json({
+        message,
+        assignedCount,
+        failedCount,
+        assignedOrders,
+        failedOrders,
+    });
 }
 
 class ControllerUser {
@@ -170,7 +321,7 @@ class ControllerUser {
 
     async GoogleLogin(req, res) {
         try {
-            const { credential } = req.body;
+            const { credential, clientId } = req.body;
 
             if (!credential) {
                 return res.status(400).json({
@@ -178,24 +329,44 @@ class ControllerUser {
                 });
             }
 
-            const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
+            const googleClientIds = (
+                process.env.GOOGLE_LOGIN_CLIENT_ID ||
+                process.env.GOOGLE_CLIENT_ID ||
+                process.env.REACT_APP_GOOGLE_CLIENT_ID ||
+                ''
+            )
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
 
-            if (!googleClientId) {
+            if (clientId && !googleClientIds.includes(clientId)) {
+                googleClientIds.push(clientId);
+            }
+
+            if (!googleClientIds.length) {
                 return res.status(500).json({
                     message: 'Google OAuth client ID chưa được cấu hình !!!',
                 });
             }
 
-            const client = new OAuth2Client(googleClientId);
+            clearBrokenLocalProxy();
+
+            const client = new OAuth2Client(googleClientIds[0]);
             const ticket = await client.verifyIdToken({
                 idToken: credential,
-                audience: googleClientId,
+                audience: googleClientIds,
             });
             const payload = ticket.getPayload();
 
             if (!payload || !payload.email) {
                 return res.status(400).json({
                     message: 'Không lấy được thông tin từ Google !!!',
+                });
+            }
+
+            if (payload.email_verified === false) {
+                return res.status(400).json({
+                    message: 'Email Google chÆ°a Ä‘Æ°á»£c xÃ¡c minh !!!',
                 });
             }
 
@@ -222,6 +393,15 @@ class ControllerUser {
                     isActive: true,
                     isGoogleAccount: true,
                 });
+
+                await dataUser.save();
+            } else {
+                dataUser.isGoogleAccount = true;
+                dataUser.lastLoginAt = new Date();
+
+                if (!dataUser.avatar && avatar) {
+                    dataUser.avatar = avatar;
+                }
 
                 await dataUser.save();
             }
@@ -265,12 +445,21 @@ class ControllerUser {
                     avatar: dataUser.avatar,
                     surplus: dataUser.surplus,
                     isAdmin: dataUser.isAdmin,
+                    role: dataUser.role,
                     isActive: dataUser.isActive,
                     role: dataUser.role,
                 },
             });
         } catch (error) {
-            console.error('GoogleLogin error:', error);
+            const detail = error?.message || 'Unknown Google login error';
+            console.error('GoogleLogin error:', {
+                message: detail,
+                code: error?.code,
+                name: error?.name,
+            });
+            return res.status(500).json({
+                message: `Loi khi dang nhap bang Google: ${detail}`,
+            });
             return res.status(500).json({
                 message: 'Lỗi khi đăng nhập bằng Google !!!',
             });
@@ -1021,7 +1210,11 @@ class ControllerUser {
     async AssignOrderToShipper(req, res) {
         try {
             const { orderId } = req.params;
-            const { shipperId } = req.body;
+            const { shipperId, orderIds } = req.body;
+
+            if (Array.isArray(orderIds)) {
+                return assignOrdersToShipperBatch(req, res, shipperId, orderIds);
+            }
 
             if (!orderId || !shipperId) {
                 return res.status(400).json({

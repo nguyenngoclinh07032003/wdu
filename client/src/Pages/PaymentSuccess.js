@@ -16,6 +16,7 @@ import {
     faTruckFast,
     faBagShopping,
 } from '@fortawesome/free-solid-svg-icons';
+import { getUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -195,7 +196,7 @@ function PaymentSuccess() {
                                                 <img
                                                     src={
                                                         item?.img
-                                                            ? `${process.env.REACT_APP_IMG}/${item.img}`
+                                                            ? getUploadUrl(item.img)
                                                             : 'https://via.placeholder.com/100x100?text=Product'
                                                     }
                                                     alt={item?.nameProduct || item?.name || 'Sản phẩm'}

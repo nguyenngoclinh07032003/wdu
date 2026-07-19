@@ -597,6 +597,93 @@ $blue: #3b82f6;
         }
     }
 }
+
+.assignSummary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    span {
+        background: transparent;
+        color: #4b5563;
+        font-size: 14px;
+        font-weight: 700;
+    }
+}
+
+.assignBox .selectAllBtn {
+    width: auto;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #f8fbf2;
+    color: #5d6f3f;
+    border: 1px solid #dbe9bd;
+    white-space: nowrap;
+}
+
+.orderCheckList {
+    max-height: 280px;
+    overflow-y: auto;
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-right: 4px;
+}
+
+.assignBox .orderCheckItem {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #dbe9bd;
+    border-radius: 12px;
+    background: #f8fbf2;
+    cursor: pointer;
+
+    input {
+        width: 18px;
+        height: 18px;
+        accent-color: #5d6f3f;
+    }
+
+    div {
+        min-width: 0;
+    }
+
+    strong,
+    span {
+        display: block;
+    }
+
+    strong {
+        color: #10231c;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    span {
+        color: #6b7280;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: transparent;
+    }
+
+    em {
+        color: #10231c;
+        font-size: 13px;
+        font-style: normal;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+}
+
 .toolBtn {
     width: 38px;
     height: 38px;
@@ -606,11 +693,32 @@ $blue: #3b82f6;
     color: #7f9652;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
 
     &:hover {
         background: #e1f0c4;
         transform: translateY(-1px);
     }
+}
+
+.toolBadge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .wrapper {
     background: #fff;

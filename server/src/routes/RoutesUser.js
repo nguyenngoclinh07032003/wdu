@@ -53,5 +53,6 @@ router.put('/api/update-user/:id', ControllerJWT.verifyTokenAdmin, ControllerUse
 router.get('/api/user/:id', ControllerJWT.verifyTokenAdmin, ControllerUser.GetUserById);
 
 router.get('/api/get-all-shipper', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.GetAllShipper);
+router.put('/api/assign-order-shipper', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.AssignOrderToShipper);
 router.put('/api/assign-order-shipper/:orderId', ControllerJWT.verifyTokenStaffOrAdmin, ControllerUser.AssignOrderToShipper);
 module.exports = router;

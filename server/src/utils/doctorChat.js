@@ -2,10 +2,11 @@ require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const apiKey = (process.env.DOCTOR_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '').trim();
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 const model = genAI
     ? genAI.getGenerativeModel({
-          model: process.env.DOCTOR_GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite',
+          model: process.env.DOCTOR_GEMINI_MODEL || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL,
       })
     : null;
 

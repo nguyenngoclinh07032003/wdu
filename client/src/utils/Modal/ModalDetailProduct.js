@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import { useStore } from '../../hooks/useStore';
 import { sanitizeHtml } from '../sanitizeHtml';
+import { getUploadUrl } from '../imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -60,12 +61,6 @@ function ModalDetailProduct({ item, show, handleClose }) {
         }
     }, [quantity]);
 
-    const getFileUrl = (fileName) => {
-        if (!fileName) return '';
-
-        return `${process.env.REACT_APP_IMG}/${fileName}`;
-    };
-
     return (
         <div className={cx('wrapper')}>
             <ToastContainer />
@@ -87,7 +82,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
                                 <div className={cx('mainMedia')}>
                                     {selectedMedia?.type === 'video' ? (
                                         <video
-                                            src={getFileUrl(selectedMedia.src)}
+                                            src={getUploadUrl(selectedMedia.src)}
                                             controls
                                             autoPlay
                                             muted
@@ -95,7 +90,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
                                         />
                                     ) : (
                                         <img
-                                            src={getFileUrl(selectedMedia?.src || images[0])}
+                                            src={getUploadUrl(selectedMedia?.src || images[0])}
                                             alt={item.name}
                                             className={cx('productImage')}
                                         />
@@ -119,7 +114,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
                                                     })
                                                 }
                                             >
-                                                <img src={getFileUrl(img)} alt={`${item.name}-${index}`} />
+                                                <img src={getUploadUrl(img)} alt={`${item.name}-${index}`} />
                                             </button>
                                         ))}
 
@@ -138,7 +133,7 @@ function ModalDetailProduct({ item, show, handleClose }) {
                                                     })
                                                 }
                                             >
-                                                <video src={getFileUrl(video)} muted />
+                                                <video src={getUploadUrl(video)} muted />
                                                 <span>▶</span>
                                             </button>
                                         ))}

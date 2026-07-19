@@ -7,6 +7,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faCamera, faXmark, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { getUploadUrl } from '../../../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -128,7 +129,7 @@ function ReviewPro({ dataPayments = [] }) {
                             {reviewItems.map((item) => (
                                 <button key={item.key} type="button" className={cx('reviewProductItem', { active: selectedKey === item.key })}
                                     onClick={() => { setSelectedKey(item.key); resetForm(); }}>
-                                    <img src={`${process.env.REACT_APP_IMG}/${item.product?.img}`} alt={item.product?.nameProduct} />
+                                    <img src={getUploadUrl(item.product?.img)} alt={item.product?.nameProduct} />
                                     <div>
                                         <strong>{item.product?.nameProduct || 'Không có tên'}</strong>
                                         <span>Đơn #{item.order?._id?.slice(0, 8)}</span>
@@ -148,7 +149,7 @@ function ReviewPro({ dataPayments = [] }) {
                     <div className={cx('reviewCard')}>
                         <div className={cx('reviewCardHeader')}><h3>Sản phẩm đang đánh giá</h3></div>
                         <div className={cx('reviewProduct')}>
-                            <img src={`${process.env.REACT_APP_IMG}/${product?.img}`} alt={product?.nameProduct} />
+                            <img src={getUploadUrl(product?.img)} alt={product?.nameProduct} />
                             <div>
                                 <h4>{product?.nameProduct}</h4>
                                 <p>Số lượng: {product?.quantity}</p>

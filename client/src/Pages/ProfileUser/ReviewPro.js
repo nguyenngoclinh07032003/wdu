@@ -7,6 +7,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faCamera, faXmark, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { getUploadUrl } from '../../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 
@@ -203,7 +204,7 @@ function ReviewPro({ dataPayments = [] }) {
                                     }}
                                 >
                                     <img
-                                        src={`${process.env.REACT_APP_IMG}/${item.product?.img}`}
+                                        src={getUploadUrl(item.product?.img)}
                                         alt={item.product?.nameProduct}
                                     />
 
@@ -251,7 +252,7 @@ function ReviewPro({ dataPayments = [] }) {
                         </div>
 
                         <div className={cx('reviewProduct')}>
-                            <img src={`${process.env.REACT_APP_IMG}/${product?.img}`} alt={product?.nameProduct} />
+                            <img src={getUploadUrl(product?.img)} alt={product?.nameProduct} />
 
                             <div>
                                 <h4>{product?.nameProduct}</h4>

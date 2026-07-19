@@ -121,7 +121,7 @@ class controllerProducts {
 
     async EditPro(req, res) {
         try {
-            const { id, nameProduct, priceProduct, description } = req.body;
+            const { id, nameProduct, priceProduct, description, isCombo } = req.body;
 
             const data = await ModelProducts.findOne({ _id: id });
 
@@ -131,11 +131,47 @@ class controllerProducts {
                 });
             }
 
-            await data.updateOne({
+            const imgFiles = req.files?.fileImg || [];
+            const videoFiles = req.files?.fileVideo || [];
+            const updateData = {
                 name: nameProduct,
                 price: priceProduct,
                 description: sanitizeProductHtml(description),
-            });
+                description: sanitizeProductHtml(description),
+                isCombo: isCombo === 'true' || isCombo === true,
+            };
+
+            if (nameProduct) {
+                updateData.slug = slugify(nameProduct, {
+                    replacement: '-',
+                    lower: false,
+                    strict: false,
+                    locale: 'vi',
+                    trim: true,
+                });
+            }
+
+            if (imgFiles.length > 0) {
+                updateData.img = imgFiles.map((file) => file.filename);
+            }
+
+            if (videoFiles.length > 0) {
+                updateData.videos = videoFiles.map((file) => file.filename);
+            }
+
+            await data.updateOne(updateData);
+
+            const oldFiles = [
+                ...(imgFiles.length > 0 ? data.img || [] : []),
+                ...(videoFiles.length > 0 ? data.videos || [] : []),
+            ];
+
+            await Promise.all(
+                oldFiles.map((item) => {
+                    if (!item) return null;
+                    return fs.unlink(path.join(__dirname, '../uploads', item)).catch(() => {});
+                }),
+            );
 
             return res.status(200).json({
                 message: 'Cập nhật thành công',

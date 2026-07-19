@@ -23,8 +23,8 @@ export const requestLogout = async () => {
     return res.data;
 };
 
-export const requestLoginGoogle = async (credential) => {
-    const res = await request.post('/api/google-login', { credential });
+export const requestLoginGoogle = async (credential, clientId = '') => {
+    const res = await request.post('/api/google-login', { credential, clientId });
     return res.data;
 };
 

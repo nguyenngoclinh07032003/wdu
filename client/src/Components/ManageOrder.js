@@ -53,6 +53,7 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
             const res = await request.get('/api/getallorder');
             const orders = Array.isArray(res.data) ? res.data : [];
             setDataCart(orders.map(normalizeOrderItem));
+            window.dispatchEvent(new Event('order-status-updated'));
         } catch (error) {
             console.log('Lỗi lấy đơn hàng:', error);
             setDataCart([]);
@@ -158,6 +159,14 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
     const startIndex = (page - 1) * productsPerPage;
     const currentProducts = processedOrders.slice(startIndex, startIndex + productsPerPage);
 
+    const orderStatusCounts = useMemo(() => {
+        return dataCart.reduce((acc, item) => {
+            const status = normalizeOrderStatus(item);
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
+    }, [dataCart]);
+
     useEffect(() => {
         if (page > totalPages) {
             setPage(totalPages);
@@ -252,6 +261,7 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
         { key: 'returned', label: 'Đã hoàn hàng' },
         { key: 'cancelled', label: 'Đã hủy' },
     ];
+    const countTabs = ['pending', 'confirmed', 'shipping'];
     const handleExportOrders = () => {
         if (!processedOrders.length) {
             toast.warning('Không có đơn hàng để xuất');
@@ -336,6 +346,11 @@ function ManageOrder({ allowCancelOrder = true, autoRefresh = true, refreshInter
                         onClick={() => setActiveTab(tab.key)}
                     >
                         {tab.label}
+                        {countTabs.includes(tab.key) && orderStatusCounts[tab.key] > 0 ? (
+                            <span className={cx('tabCountBadge')}>
+                                {orderStatusCounts[tab.key] > 99 ? '99+' : orderStatusCounts[tab.key]}
+                            </span>
+                        ) : null}
                     </button>
                 ))}
             </div>

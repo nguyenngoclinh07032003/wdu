@@ -19,6 +19,10 @@ const ModelUser = require('./models/ModelUser');
 
 const PORT = process.env.PORT || 5001;
 const server = http.createServer(app);
+const uploadDirs = [
+    path.join(__dirname, '..', 'uploads'),
+    path.join(__dirname, 'uploads'),
+];
 
 // ===== SOCKET.IO =====
 if (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_URL) {
@@ -119,7 +123,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// upload cache — chặn public doctor-certificates + delivery-evidence
+// upload cache and private upload guard
 app.use('/uploads', (req, res, next) => {
     const p = String(req.path || '');
     if (
@@ -134,9 +138,6 @@ app.use('/uploads', (req, res, next) => {
     next();
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/uploads', express.static('uploads'));
-
 const missingUploadPlaceholder = `
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-label="No image">
   <rect width="640" height="640" rx="56" fill="#f4f9ef"/>
@@ -145,6 +146,10 @@ const missingUploadPlaceholder = `
   <rect x="96" y="96" width="448" height="448" rx="42" fill="none" stroke="#c8dfbd" stroke-width="18"/>
   <text x="320" y="548" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#5f7660">No image</text>
 </svg>`;
+
+uploadDirs.forEach((dir) => {
+    app.use('/uploads', express.static(dir));
+});
 
 app.get(/^\/uploads\/.+/, (req, res) => {
     res.set('Cache-Control', 'no-store');

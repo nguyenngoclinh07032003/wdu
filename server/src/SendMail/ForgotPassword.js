@@ -1,33 +1,8 @@
-const { google } = require('googleapis');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
-
-// use explicit Google OAuth credentials for email sending
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN; // generate this via Google OAuth playground
-
-if (!CLIENT_ID || !CLIENT_SECRET) {
-    console.error('Google OAuth client ID/secret missing for email sending');
-}
-const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+const createMailTransport = require('./mailTransport');
 
 const ForgotPassword = async (email, token, otp) => {
     try {
-        const accessToken = await oAuth2Client.getAccessToken();
-        const transport = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: process.env.EMAIL_USER,
-                clientId: CLIENT_ID,
-                clientSecret: CLIENT_SECRET,
-                refreshToken: REFRESH_TOKEN,
-                accessToken: accessToken,
-            },
-        });
+        const transport = await createMailTransport();
         const info = await transport.sendMail({
             from: `"Healthcare" <${process.env.EMAIL_USER}>`,
             to: email,

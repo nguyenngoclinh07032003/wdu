@@ -50,10 +50,15 @@
         "web-vitals": "^2.1.4",
         "xlsx": "^0.18.5"
     },
+    "devDependencies": {
+        "playwright": "^1.61.1"
+    },
     "scripts": {
         "start": "node scripts/start-port-3000.js",
         "build": "react-scripts build",
         "test": "react-scripts test",
+        "test:e2e": "node e2e/screen-smoke.test.js",
+        "test:e2e:headed": "node e2e/screen-smoke.test.js --headed",
         "eject": "react-scripts eject"
     },
     "eslintConfig": {

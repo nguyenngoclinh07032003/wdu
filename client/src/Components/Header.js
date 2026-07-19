@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import Offcanvas from 'react-bootstrap/Offcanvas';
 import { useStore } from '../hooks/useStore';
 import { canUseCustomerAsk } from '../utils/canUseCustomerAsk';
+import { getFirstUploadUrl } from '../utils/imageUrl';
 
 const cx = classNames.bind(styles);
 const THEME_STORAGE_KEY = 'healthcare_theme';
@@ -145,7 +146,7 @@ function Header() {
                                             <div className={cx('form-result')}>
                                                 {item?.img?.[0] ? (
                                                     <img
-                                                        src={`${process.env.REACT_APP_IMG}/${item.img[0]}`}
+                                                        src={getFirstUploadUrl(item.img)}
                                                         alt={item.name}
                                                     />
                                                 ) : (
